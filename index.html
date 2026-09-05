@@ -205,6 +205,14 @@ textarea.finput{resize:vertical;min-height:90px}
 .dtb:hover{border-color:#818cf8;color:#818cf8}
 .dtb.on{background:rgba(99,102,241,.25);border-color:#818cf8;color:#818cf8}
 
+/* شريط اختيار الأسبوع */
+.wkbar{display:flex;gap:8px;align-items:center;margin-bottom:14px;flex-wrap:wrap}
+.wkbar .wk-sel{flex:1;min-width:200px;font-size:14px;padding:11px 14px;font-weight:700;text-align:center}
+.wkbar .wk-nav{white-space:nowrap}
+.dtb .dt-date{display:block;font-size:11px;font-weight:600;opacity:.65;margin-top:2px}
+.dtb.today{border-color:#22c55e}
+.dtb.today .dt-date{color:#22c55e;opacity:1}
+
 /* فلاتر */
 .filters{display:flex;gap:10px;flex-wrap:wrap;margin-bottom:16px}
 .filters .finput{flex:1;min-width:140px;font-size:14px;padding:10px 14px}
@@ -420,7 +428,7 @@ tbody td{padding:13px 18px;color:rgba(255,255,255,.85)}
 <div class="card">
   <div class="card-hd" style="background:linear-gradient(135deg,rgba(15,23,42,.8),rgba(30,27,75,.8))">
     <h2><span class="live"></span>لوحة المتابعة اليومية</h2>
-    <p>مخصصة للوكيلتين والإداريتين • يتجدد تلقائياً</p>
+    <p id="dash-sub">مخصصة للوكيلتين والإداريتين • يتجدد تلقائياً</p>
   </div>
   <div class="card-bd">
 
@@ -433,15 +441,15 @@ tbody td{padding:13px 18px;color:rgba(255,255,255,.85)}
       <div class="sc sc-tt"><div class="sc-num" id="s5">0</div><div class="sc-lbl">📋 الإجمالي</div></div>
     </div>
 
-    <!-- تبويبات الأيام -->
-    <div class="dtabs">
-      <button class="dtb on" onclick="filterDay(this,'')">كل الأيام</button>
-      <button class="dtb" onclick="filterDay(this,'الأحد')">الأحد</button>
-      <button class="dtb" onclick="filterDay(this,'الاثنين')">الاثنين</button>
-      <button class="dtb" onclick="filterDay(this,'الثلاثاء')">الثلاثاء</button>
-      <button class="dtb" onclick="filterDay(this,'الأربعاء')">الأربعاء</button>
-      <button class="dtb" onclick="filterDay(this,'الخميس')">الخميس</button>
+    <!-- اختيار الأسبوع -->
+    <div class="wkbar">
+      <button class="btn-sm btn-prnt wk-nav" onclick="shiftWeek(-1)">◀ الأسبوع السابق</button>
+      <select class="finput wk-sel" id="fweek" onchange="pickWeek(this.value)"></select>
+      <button class="btn-sm btn-prnt wk-nav" onclick="shiftWeek(1)">الأسبوع التالي ▶</button>
     </div>
+
+    <!-- تبويبات أيام الأسبوع المختار -->
+    <div class="dtabs" id="dtabs"></div>
 
     <!-- فلاتر -->
     <div class="filters">
@@ -479,6 +487,7 @@ tbody td{padding:13px 18px;color:rgba(255,255,255,.85)}
               <th>الفئة</th>
               <th>الحالة</th>
               <th>اليوم</th>
+              <th>التاريخ</th>
               <th>الملاحظات</th>
               <th>وقت التسجيل</th>
             </tr>
@@ -529,14 +538,50 @@ tbody td{padding:13px 18px;color:rgba(255,255,255,.85)}
 var API_URL='https://script.google.com/macros/s/AKfycbxTJg9I8iSUncceJ0mpLxc0_DO4czRUDPBOVBZat5fThk9CNKArPquv-U-ImLQrQL6q/exec';
 var DEFAULT_PW='abrar123';
 var selType='', selDay='', curDayFilter='';
+var curWeekStart=0; // بداية الأسبوع المعروض في لوحة المتابعة (يُضبط عند فتحها)
 var selRole='معلمة'; // الفئة الافتراضية: معلمة
-var PERM_MAX=3;  // عدد مرات الاستئذان الصباحي/المسائي المسموحة شهرياً (الحالة العامة)
+var selChildAcc=false; // هل الاستئذان الحالي لمرافقة الأبناء؟
+var PERM_MAX=3;  // استئذانات الشهر العادية (لجميع المعلمات والإداريات)
 
-// ── حد استثنائي (6 مرات) لهذا الشهر الميلادي لمعلمات محدّدات ──────────────
-// لتغييره لشهر آخر لاحقاً: عدّلي SPECIAL_LIMIT_MONTH (السنة، والشهر بترقيم 0=يناير...8=سبتمبر)
-var SPECIAL_LIMIT_MAX=6;
+// ── رصيد إضافي لمرافقة الأبناء (3 مرات) لمعلمات محدّدات، منفصل عن رصيد الشهر ──
+// أي: المعلمة المحدّدة لها 3 لمرافقة الطفل + 3 استئذانات الشهر العادية.
+// لتفعيله لشهر آخر لاحقاً: عدّلي SPECIAL_LIMIT_MONTH (الشهر بترقيم 0=يناير...8=سبتمبر)
+var CHILD_LEAVE_MAX=3;
 var SPECIAL_LIMIT_MONTH={year:2026, month:8}; // سبتمبر 2026
 var SPECIAL_LIMIT_NAMES=['هدى','نوال','رباب','أميرة','شيخة','دلال','سامية','ناديه','بدريه','هديل','منى','تغريد','هند','نورة'];
+var CHILD_TAG='[مرافقة طفل]'; // وسم يُضاف لملاحظة الاستئذان ليُحسب من رصيد المرافقة
+
+// ══ الأرصدة الافتتاحية لشهر سبتمبر 2026 (ما استُهلك فعلياً قبل تفعيل النظام) ══
+// مأخوذة من مراجعة جدول البيانات: كل سجلات سبتمبر حتى 3/9 ممثَّلة بهذه الأرقام،
+// ولذلك تُستثنى تلك السجلات من العدّ المباشر حتى لا تُحسب مرتين.
+// تنتهي صلاحيتها تلقائياً بانتهاء الشهر (وتُصفَّر مع بداية الشهر التالي).
+var BASELINE_MONTH={year:2026, month:8};                        // سبتمبر 2026
+var BASELINE_UNTIL=new Date('2026-09-04T00:00:00').getTime();   // ما قبله = رصيد افتتاحي
+var BASELINE_USED={
+  'احلام':{child:0,reg:1},
+  'اميره':{child:1,reg:0},
+  'بخيته':{child:0,reg:1},
+  'رمزيه':{child:0,reg:1},
+  'ساره':{child:0,reg:1},
+  'ساميه':{child:1,reg:0},
+  'شيخه':{child:3,reg:0},
+  'فاطمه':{child:0,reg:1},
+  'مني':{child:0,reg:1},
+  'ناديه':{child:2,reg:0},
+  'نجلاء':{child:0,reg:1},
+  'نوال':{child:0,reg:1},
+  'هديل':{child:2,reg:0},
+  'هند':{child:0,reg:1},
+  'وفاء':{child:0,reg:1}
+};
+function isBaselineActive(){
+  var n=new Date();
+  return n.getFullYear()===BASELINE_MONTH.year && n.getMonth()===BASELINE_MONTH.month;
+}
+function baselineOf(name){
+  if(!isBaselineActive())return {child:0,reg:0};
+  return BASELINE_USED[firstNameNorm(name)]||{child:0,reg:0};
+}
 
 // ── توحيد الأسماء العربية لتقبل اختلافات الإملاء البسيطة (أ/إ/آ/ا، ة/ه، ى/ي، إلخ) ──
 function normalizeArabic(s){
@@ -560,10 +605,19 @@ function isSpecialLimitMonth(){
   var n=new Date();
   return n.getFullYear()===SPECIAL_LIMIT_MONTH.year && n.getMonth()===SPECIAL_LIMIT_MONTH.month;
 }
-// الحد الشهري الفعلي لمعلمة/إدارية معينة
-function getPermMax(name){
-  if(isSpecialLimitMonth() && isSpecialLimitEligible(name))return SPECIAL_LIMIT_MAX;
-  return PERM_MAX;
+// هل تستحق هذه المعلمة رصيد مرافقة الأبناء الإضافي هذا الشهر؟
+function hasChildQuota(name){
+  return isSpecialLimitMonth() && isSpecialLimitEligible(name);
+}
+// ── تمييز استئذانات "مرافقة الطفل" من الملاحظة ────────────────────────────
+// يشمل الوسم الجديد [مرافقة طفل] وكذلك الملاحظات السابقة المكتوبة يدوياً
+// مثل: "مرافقة الابناء للمدرسة" / "مرافقه ولدي تمهيدي" / "مع بنتي اول ابتدائي"
+function isChildLeaveNote(note){
+  var n=(note||'').replace(/[ً-ْٰـ]/g,'').replace(/[أإآا]/g,'ا').replace(/ة/g,'ه').replace(/[ىي]/g,'ي');
+  if(n.indexOf('مرافقه طفل')!==-1||n.indexOf('[مرافقه طفل]')!==-1)return true;
+  if(/والد|زوج|امي|ابي|اختي/.test(n))return false; // مرافقة أحد الكبار ليست مرافقة أبناء
+  if(/مرافق/.test(n))return true;
+  return /مع (بنتي|ابني|ولدي|طفلي|اطفالي)/.test(n);
 }
 
 var RECS=[];
@@ -724,6 +778,18 @@ function askInfo(opts){
 async function runPreChecks(){
   // المعلمة + استئذان صباحي/مسائي: تأكيد الحصص ثم تأمينها
   if(selRole==='معلمة' && (selType==='استئذان صباحي'||selType==='استئذان مسائي')){
+    // المعلمات صاحبات رصيد المرافقة: نحدد أولاً من أي رصيد يُخصم الاستئذان
+    var nameNow=document.getElementById('f-name').value.trim();
+    selChildAcc=false;
+    if(hasChildQuota(nameNow)){
+      selChildAcc=await askConfirm({
+        icon:'👶',
+        title:'نوع الاستئذان',
+        body:'هل هذا الاستئذان لمرافقة أبنائك؟\n\nلديكِ رصيد خاص للمرافقة ('+CHILD_LEAVE_MAX+' مرات شهرياً) منفصل عن استئذانات الشهر العادية ('+PERM_MAX+' مرات).',
+        yesText:'نعم، لمرافقة الأبناء',
+        noText:'لا، استئذان عادي'
+      });
+    }
     var hasClasses=await askConfirm({
       icon:'📚',
       title:'تأكيد الجدول',
@@ -810,22 +876,101 @@ async function go(p){
   document.querySelectorAll('.tb').forEach(function(b,i){
     b.classList.toggle('on',['form','dash'][i]===p);
   });
-  if(p==='dash'){autoSelectDashDay();await checkMonthlyClear();await loadRecs();updateStats();render()}
+  if(p==='dash'){
+    await checkMonthlyClear();
+    await loadRecs();
+    resetDashToCurrentWeek(); // كل فتح للوحة يبدأ من أسبوع اليوم الحالي
+    buildWeekOptions();
+    buildDayTabs();
+    updateStats();render();
+  }
 }
 
-// ── فلتر اليوم في لوحة المتابعة يبدأ دائماً على "اليوم" (جديد يوم بيوم) ──
-function autoSelectDashDay(){
-  var days=['الأحد','الاثنين','الثلاثاء','الأربعاء','الخميس'];
-  var todayIdx=new Date().getDay();
-  var btns=document.querySelectorAll('.dtb');
-  btns.forEach(function(b){b.classList.remove('on')});
-  if(todayIdx>=0&&todayIdx<=4){
-    curDayFilter=days[todayIdx];
-    if(btns[todayIdx+1])btns[todayIdx+1].classList.add('on');
-  }else{
-    curDayFilter='';
-    if(btns[0])btns[0].classList.add('on');
+// ══════════ أدوات الأسابيع والأيام (فصل كل أسبوع عن الآخر) ══════════
+var AR_MONTHS=['يناير','فبراير','مارس','أبريل','مايو','يونيو','يوليو','أغسطس','سبتمبر','أكتوبر','نوفمبر','ديسمبر'];
+var WEEK_DAYS=['الأحد','الاثنين','الثلاثاء','الأربعاء','الخميس'];
+
+// بداية الأسبوع الدراسي (الأحد) لأي تاريخ
+function weekStartOf(ts){
+  var d=new Date(ts);
+  d.setHours(0,0,0,0);
+  d.setDate(d.getDate()-d.getDay()); // 0=الأحد
+  return d.getTime();
+}
+function dayKeyOf(ts){
+  var d=new Date(ts);
+  return d.getFullYear()+'-'+(d.getMonth()+1)+'-'+d.getDate();
+}
+function addDays(ts,n){
+  var d=new Date(ts);d.setDate(d.getDate()+n);return d.getTime();
+}
+function shortDate(ts){
+  var d=new Date(ts);return d.getDate()+'/'+(d.getMonth()+1);
+}
+// عنوان الأسبوع: "الأحد 6 – الخميس 10 سبتمبر"
+function weekLabel(ws){
+  var a=new Date(ws), b=new Date(addDays(ws,4));
+  var lbl=a.getDate()+' '+AR_MONTHS[a.getMonth()]+' – '+b.getDate()+' '+AR_MONTHS[b.getMonth()];
+  if(ws===weekStartOf(Date.now()))lbl='هذا الأسبوع ('+lbl+')';
+  else if(ws===weekStartOf(addDays(Date.now(),-7)))lbl='الأسبوع الماضي ('+lbl+')';
+  return lbl;
+}
+// أسبوع السجل (السجلات القديمة بلا طابع زمني تُنسب للأسبوع الحالي)
+function recWeekStart(r){
+  return r.ts?weekStartOf(r.ts):weekStartOf(Date.now());
+}
+function recDayKey(r){
+  return r.ts?dayKeyOf(r.ts):'';
+}
+
+function resetDashToCurrentWeek(){
+  curWeekStart=weekStartOf(Date.now());
+  var td=new Date().getDay();
+  // نبدأ على اليوم الحالي إن كان من أيام الدوام (الأحد–الخميس)، وإلا نعرض الأسبوع كاملاً
+  curDayFilter=(td>=0&&td<=4)?dayKeyOf(Date.now()):'';
+}
+
+// قائمة الأسابيع المتوفرة في السجلات + الأسبوع الحالي
+function buildWeekOptions(){
+  var sel=document.getElementById('fweek');
+  if(!sel)return;
+  var set={};
+  set[weekStartOf(Date.now())]=true;
+  set[curWeekStart]=true;
+  getRecs().forEach(function(r){set[recWeekStart(r)]=true});
+  var weeks=Object.keys(set).map(Number).sort(function(a,b){return b-a});
+  sel.innerHTML=weeks.map(function(w){
+    return '<option value="'+w+'"'+(w===curWeekStart?' selected':'')+'>📅 '+weekLabel(w)+'</option>';
+  }).join('');
+}
+
+// أزرار أيام الأسبوع المختار مع تواريخها الفعلية
+function buildDayTabs(){
+  var wrap=document.getElementById('dtabs');
+  if(!wrap)return;
+  var todayKey=dayKeyOf(Date.now());
+  var html='<button class="dtb'+(curDayFilter===''?' on':'')+'" onclick="filterDay(this,\'\')">كل الأسبوع</button>';
+  for(var i=0;i<5;i++){
+    var ts=addDays(curWeekStart,i);
+    var k=dayKeyOf(ts);
+    html+='<button class="dtb'+(curDayFilter===k?' on':'')+(k===todayKey?' today':'')+'" onclick="filterDay(this,\''+k+'\')">'+
+            WEEK_DAYS[i]+'<span class="dt-date">'+shortDate(ts)+(k===todayKey?' • اليوم':'')+'</span>'+
+          '</button>';
   }
+  wrap.innerHTML=html;
+}
+
+function pickWeek(val){
+  curWeekStart=Number(val);
+  // عند تغيير الأسبوع: نعرض الأسبوع كاملاً إلا إذا كان الأسبوع الحالي فنبدأ من اليوم
+  var td=new Date().getDay();
+  curDayFilter=(curWeekStart===weekStartOf(Date.now())&&td>=0&&td<=4)?dayKeyOf(Date.now()):'';
+  buildDayTabs();updateStats();render();
+}
+function shiftWeek(dir){
+  curWeekStart=addDays(curWeekStart,dir*7);
+  curDayFilter='';
+  buildWeekOptions();buildDayTabs();updateStats();render();
 }
 
 // ── اختيار نوع الاستئذان ──────────────────────────────────────────────────
@@ -867,13 +1012,34 @@ function isSameMonth(ts){
   return d.getFullYear()===n.getFullYear() && d.getMonth()===n.getMonth();
 }
 
-// ── حساب عدد الاستئذانات الصباحية والمسائية خلال الشهر الميلادي الحالي فقط ──
-function countPermissions(name){
-  var recs=getRecs();
-  return recs.filter(function(r){
+// ── استئذانات المعلمة (صباحي/مسائي) خلال الشهر الميلادي الحالي فقط ────────
+function monthLeaves(name){
+  var skipOld=isBaselineActive();
+  return getRecs().filter(function(r){
+    if(skipOld && r.ts && r.ts<BASELINE_UNTIL)return false; // ممثَّلة بالرصيد الافتتاحي
     return namesMatch(r.name,name) && isSameMonth(r.ts) &&
            (r.type==='استئذان صباحي' || r.type==='استئذان مسائي');
-  }).length;
+  });
+}
+// إجمالي استئذانات الشهر (يُستخدم للعرض فقط)
+function countPermissions(name){
+  var b=baselineOf(name);
+  return monthLeaves(name).length + b.child + b.reg;
+}
+
+// رصيد مرافقة الأبناء المستهلك هذا الشهر (للمعلمات المحدّدات)
+function countChildLeaves(name){
+  return baselineOf(name).child +
+    monthLeaves(name).filter(function(r){return isChildLeaveNote(r.note)}).length;
+}
+// رصيد استئذانات الشهر العادية المستهلك
+// للمعلمة المحدّدة: ما لم يكن لمرافقة الأبناء. لغيرها: كل الاستئذانات ضمن حد واحد.
+function countRegularLeaves(name){
+  var b=baselineOf(name);
+  if(hasChildQuota(name)){
+    return b.reg + monthLeaves(name).filter(function(r){return !isChildLeaveNote(r.note)}).length;
+  }
+  return b.child + b.reg + monthLeaves(name).length;
 }
 
 // ── إرسال النموذج ─────────────────────────────────────────────────────────
@@ -904,10 +1070,13 @@ async function sendForm(){
   await loadRecs();
   if(sendBtn){sendBtn.disabled=false;sendBtn.textContent=origBtnText}
 
-  // ── تحقق: هل تجاوزت الحد الشهري (3 مرات عادةً، أو 6 للمحدّدات هذا الشهر)؟ ──
+  // ── تحقق من الرصيد: مرافقة الأبناء له رصيده، والاستئذان العادي له رصيده ──
   var isPermission = (selType==='استئذان صباحي' || selType==='استئذان مسائي');
-  var permMax = getPermMax(name);
-  if(isPermission && countPermissions(name) >= permMax){
+  var useChildQuota = isPermission && selChildAcc && hasChildQuota(name);
+  var permMax = useChildQuota ? CHILD_LEAVE_MAX : PERM_MAX;
+  var usedNow  = useChildQuota ? countChildLeaves(name) : countRegularLeaves(name);
+  var quotaName= useChildQuota ? 'استئذانات مرافقة الأبناء' : 'استئذانات الشهر';
+  if(isPermission && usedNow >= permMax){
     document.getElementById('form-body').style.display='none';
     document.getElementById('succ').style.display='block';
     document.getElementById('succ').innerHTML=
@@ -915,12 +1084,16 @@ async function sendForm(){
       '<h3 style="color:#f87171;font-size:22px;margin-bottom:14px">نأسف، لا يمكن تسجيل الطلب</h3>'+
       '<p style="color:rgba(255,255,255,.6);font-size:15px;line-height:1.9;margin-bottom:28px">'+
         'عزيزتي <strong style="color:#fff">'+name+'</strong>،<br>'+
-        'لقد تجاوزتِ الحد المسموح به من الاستئذانات لهذا الشهر<br>'+
-        '(الحد الأقصى <strong style="color:#fbbf24">'+permMax+' استئذانات</strong> صباحية ومسائية مجتمعة في الشهر الميلادي).<br><br>'+
-        'يُرجى التواصل مع الإدارة للمزيد من التفاصيل.'+
+        'لقد استنفدتِ رصيد <strong style="color:#fbbf24">'+quotaName+'</strong> لهذا الشهر الميلادي<br>'+
+        '(الحد الأقصى <strong style="color:#fbbf24">'+permMax+' مرات</strong>).<br><br>'+
+        (useChildQuota
+          ? 'ولا يزال لديكِ رصيد استئذانات الشهر العادية: <strong style="color:#4ade80">'+Math.max(0,PERM_MAX-countRegularLeaves(name))+' من '+PERM_MAX+'</strong>.<br>يمكنكِ إعادة التسجيل واختيار "استئذان عادي".'
+          : (hasChildQuota(name)
+              ? 'ولا يزال لديكِ رصيد مرافقة الأبناء: <strong style="color:#4ade80">'+Math.max(0,CHILD_LEAVE_MAX-countChildLeaves(name))+' من '+CHILD_LEAVE_MAX+'</strong>.'
+              : 'يُرجى التواصل مع الإدارة للمزيد من التفاصيل.'))+
       '</p>'+
       '<div style="background:rgba(248,113,113,.1);border:1px solid rgba(248,113,113,.3);border-radius:14px;padding:16px;margin-bottom:28px">'+
-        '<div style="font-size:13px;color:#fca5a5">📊 عدد استئذاناتك هذا الشهر: <strong>'+countPermissions(name)+' / '+permMax+'</strong></div>'+
+        '<div style="font-size:13px;color:#fca5a5">📊 المستهلك من '+quotaName+': <strong>'+usedNow+' / '+permMax+'</strong></div>'+
       '</div>'+
       '<button class="btn-new" onclick="resetForm()">رجوع</button>';
     return;
@@ -930,7 +1103,9 @@ async function sendForm(){
   var hh=now.getHours().toString().padStart(2,'0');
   var mm=now.getMinutes().toString().padStart(2,'0');
   var time=hh+':'+mm;
-  var newRec={name:name,role:selRole,type:selType,day:selDay,note:note,time:time,ts:now.getTime()};
+  var noteOut=note;
+  if(useChildQuota && !isChildLeaveNote(noteOut))noteOut=(CHILD_TAG+' '+noteOut).trim();
+  var newRec={name:name,role:selRole,type:selType,day:selDay,note:noteOut,time:time,ts:now.getTime()};
   if(sendBtn){sendBtn.disabled=true;sendBtn.textContent='جارِ الإرسال...'}
   var saved=await addRecordRemote(newRec);
   if(sendBtn){sendBtn.disabled=false;sendBtn.textContent=origBtnText}
@@ -952,7 +1127,7 @@ async function sendForm(){
   RECS.unshift(newRec);
 
   // عرض النجاح
-  var remaining = isPermission ? (permMax-countPermissions(name)) : null;
+  var remaining = isPermission ? Math.max(0,permMax-(useChildQuota?countChildLeaves(name):countRegularLeaves(name))) : null;
   document.getElementById('form-body').style.display='none';
   document.getElementById('succ').style.display='block';
   document.getElementById('succ').innerHTML=
@@ -963,7 +1138,8 @@ async function sendForm(){
       '<span class="pill">📅 '+selDay+'</span>'+
       '<span class="pill">'+selType+'</span>'+
       '<span class="pill">⏰ '+time+'</span>'+
-      (remaining!==null ? '<span class="pill" style="background:rgba(251,191,36,.1);border-color:rgba(251,191,36,.3);color:#fbbf24">متبقي '+remaining+' هذا الشهر</span>' : '')+
+      (remaining!==null ? '<span class="pill" style="background:rgba(251,191,36,.1);border-color:rgba(251,191,36,.3);color:#fbbf24">'+(useChildQuota?'متبقي '+remaining+' مرافقة':'متبقي '+remaining+' هذا الشهر')+'</span>' : '')+
+      (isPermission&&hasChildQuota(name)&&!useChildQuota ? '<span class="pill" style="background:rgba(74,222,128,.1);border-color:rgba(74,222,128,.3);color:#4ade80">رصيد المرافقة: '+Math.max(0,CHILD_LEAVE_MAX-countChildLeaves(name))+'</span>' : '')+
     '</div>'+
     '<br><br><button class="btn-new" onclick="resetForm()">＋ تسجيل استئذان جديد</button>';
 }
@@ -983,6 +1159,7 @@ function resetForm(){
   });
   document.getElementById('role-teacher').classList.add('ap','ap-blue');
   selRole='معلمة';
+  selChildAcc=false;
   document.getElementById('fw-name').classList.remove('has-err');
   document.getElementById('fw-type').classList.remove('has-err');
   document.getElementById('fw-day').classList.remove('has-err');
@@ -995,7 +1172,7 @@ function filterDay(el,val){
   curDayFilter=val;
   document.querySelectorAll('.dtb').forEach(function(b){b.classList.remove('on')});
   el.classList.add('on');
-  render();
+  updateStats();render();
 }
 
 // ── بيانات مفلترة ─────────────────────────────────────────────────────────
@@ -1005,7 +1182,8 @@ function getFiltered(){
   var fr=document.getElementById('fr')?document.getElementById('fr').value:'';
   var fn=document.getElementById('fn').value.trim();
   return recs.filter(function(r){
-    return(!curDayFilter||r.day===curDayFilter)&&
+    return recWeekStart(r)===curWeekStart &&          // سجلات الأسبوع المختار فقط
+           (!curDayFilter||recDayKey(r)===curDayFilter)&& // ثم اليوم المحدد بتاريخه
            (!ft||r.type===ft)&&
            (!fr||r.role===fr)&&
            (!fn||r.name.includes(fn));
@@ -1027,9 +1205,9 @@ function render(){
     return (TYPE_ORDER[a.type]-TYPE_ORDER[b.type]);
   });
   var tb=document.getElementById('tbody');
-  document.getElementById('tcnt').textContent=data.length+' سجل';
+  document.getElementById('tcnt').textContent=data.length+' سجل • '+viewLabel();
   if(!data.length){
-    tb.innerHTML='<tr><td colspan="6"><div class="empty"><div class="ei">📭</div><p>لا توجد سجلات</p></div></td></tr>';
+    tb.innerHTML='<tr><td colspan="7"><div class="empty"><div class="ei">📭</div><p>لا توجد سجلات في '+viewLabel()+'</p></div></td></tr>';
     return;
   }
   tb.innerHTML=data.map(function(r){
@@ -1038,22 +1216,36 @@ function render(){
       '<td>'+(r.role==='إدارية'?'🗂️ إدارية':'👩‍🏫 معلمة')+'</td>'+
       '<td><span class="badge '+BCLS[r.type]+'">'+r.type+'</span></td>'+
       '<td>'+r.day+'</td>'+
+      '<td class="tc-time">'+(r.ts?shortDate(r.ts):'—')+'</td>'+
       '<td class="tc-note">'+(r.note||'—')+'</td>'+
       '<td class="tc-time">'+r.time+'</td>'+
       '</tr>';
   }).join('');
 }
 
-// ── تحديث الإحصائيات ─────────────────────────────────────────────────────
+// وصف ما يعرضه الجدول حالياً (أسبوع كامل أو يوم محدد)
+function viewLabel(){
+  if(curDayFilter){
+    for(var i=0;i<5;i++){
+      var ts=addDays(curWeekStart,i);
+      if(dayKeyOf(ts)===curDayFilter)return WEEK_DAYS[i]+' '+shortDate(ts);
+    }
+  }
+  return weekLabel(curWeekStart);
+}
+
+// ── تحديث الإحصائيات (للأسبوع/اليوم المعروض فقط) ─────────────────────────
 function updateStats(){
-  var recs=getRecs();
+  var data=getFiltered();
   var c={'غائبة مرضي':0,'غائبة اضطراري':0,'استئذان صباحي':0,'استئذان مسائي':0};
-  recs.forEach(function(r){if(c[r.type]!==undefined)c[r.type]++});
+  data.forEach(function(r){if(c[r.type]!==undefined)c[r.type]++});
   document.getElementById('s1').textContent=c['غائبة مرضي'];
   document.getElementById('s2').textContent=c['غائبة اضطراري'];
   document.getElementById('s3').textContent=c['استئذان صباحي'];
   document.getElementById('s4').textContent=c['استئذان مسائي'];
-  document.getElementById('s5').textContent=recs.length;
+  document.getElementById('s5').textContent=data.length;
+  var sub=document.getElementById('dash-sub');
+  if(sub)sub.textContent='المعروض: '+viewLabel()+' • كل أسبوع منفصل عن الآخر';
 }
 
 // ── مسح الكل ──────────────────────────────────────────────────────────────
@@ -1064,15 +1256,15 @@ async function clearAll(){
 
 // ── تصدير Excel ───────────────────────────────────────────────────────────
 function exportExcel(){
-  var recs=getRecs();
-  if(!recs.length){alert('لا توجد بيانات للتصدير');return}
-  var csv='\uFEFF'+'الاسم,الفئة,نوع الاستئذان,اليوم,وقت التسجيل,الملاحظات\n';
+  var recs=getFiltered(); // يُصدَّر ما هو معروض حالياً (الأسبوع/اليوم المختار)
+  if(!recs.length){alert('لا توجد بيانات للتصدير في '+viewLabel());return}
+  var csv='\uFEFF'+'الاسم,الفئة,نوع الاستئذان,اليوم,التاريخ,وقت التسجيل,الملاحظات\n';
   recs.forEach(function(r){
-    csv+='"'+r.name+'","'+(r.role||'معلمة')+'","'+r.type+'","'+r.day+'","'+r.time+'","'+(r.note||'')+'"\n';
+    csv+='"'+r.name+'","'+(r.role||'معلمة')+'","'+r.type+'","'+r.day+'","'+(r.ts?shortDate(r.ts):'')+'","'+r.time+'","'+(r.note||'')+'"\n';
   });
   var a=document.createElement('a');
   a.href=URL.createObjectURL(new Blob([csv],{type:'text/csv;charset=utf-8'}));
-  a.download='حضور_المعلمات_'+new Date().toLocaleDateString('ar')+'.csv';
+  a.download='حضور_المعلمات_'+viewLabel().replace(/[^\u0600-\u06FF0-9]+/g,'_')+'.csv';
   a.click();
 }
 
