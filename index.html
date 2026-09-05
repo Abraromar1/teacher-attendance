@@ -9,7 +9,7 @@
 :root{
   --pink:#FFB3BA;--pink-d:#C0003A;--pink-bg:#fff0f2;
   --green:#BAFFC9;--green-d:#1A6B3C;--green-bg:#f0fff4;
-  --yellow:#FFFFBA;--yellow-d:#7A6000;--yellow-bg:#fffef0;
+  --yellow:#FFFFBA;--yellow-d:#7A6000;--yellow-bg:#fffef0;--yellow-v:#FFD60A;
   --blue:#BAE1FF;--blue-d:#003F8C;--blue-bg:#f0f7ff;
   --purple:#e9d5ff;--purple-d:#6b21a8;
   --navy:#0f172a;--navy2:#1e293b;--navy3:#334155;
@@ -111,8 +111,9 @@ textarea.finput{resize:vertical;min-height:90px}
 .topt.ap .ck{opacity:1}
 .topt.ap-pink{background:rgba(255,179,186,.15);border-color:#FFB3BA;color:#FFB3BA}
 .topt.ap-green{background:rgba(186,255,201,.15);border-color:#BAFFC9;color:#BAFFC9}
-.topt.ap-yellow{background:rgba(255,255,186,.15);border-color:#FFFFBA;color:var(--yellow-d)}
+.topt.ap-yellow{background:rgba(255,214,10,.18);border-color:var(--yellow-v);color:var(--yellow-v)}
 .topt.ap-blue{background:rgba(186,225,255,.15);border-color:#BAE1FF;color:#BAE1FF}
+#fw-role .type-grid{grid-template-columns:1fr 1fr}
 
 /* أيام */
 .days{display:flex;gap:8px;flex-wrap:wrap}
@@ -180,8 +181,8 @@ textarea.finput{resize:vertical;min-height:90px}
 .sc-pk::before{background:#FFB3BA}
 .sc-gn{background:rgba(186,255,201,.1);border-color:rgba(186,255,201,.3)}
 .sc-gn::before{background:#BAFFC9}
-.sc-yw{background:rgba(255,255,186,.1);border-color:rgba(255,255,186,.3)}
-.sc-yw::before{background:#FFFFBA}
+.sc-yw{background:rgba(255,214,10,.14);border-color:rgba(255,214,10,.4)}
+.sc-yw::before{background:var(--yellow-v)}
 .sc-bl{background:rgba(186,225,255,.1);border-color:rgba(186,225,255,.3)}
 .sc-bl::before{background:#BAE1FF}
 .sc-tt{background:rgba(255,255,255,.05);border-color:rgba(255,255,255,.15)}
@@ -189,7 +190,7 @@ textarea.finput{resize:vertical;min-height:90px}
 .sc-lbl{font-size:13px;font-weight:600;margin-top:4px;opacity:.8}
 .sc-pk .sc-num,.sc-pk .sc-lbl{color:#FFB3BA}
 .sc-gn .sc-num,.sc-gn .sc-lbl{color:#BAFFC9}
-.sc-yw .sc-num,.sc-yw .sc-lbl{color:var(--yellow-d)}
+.sc-yw .sc-num,.sc-yw .sc-lbl{color:var(--yellow-v)}
 .sc-bl .sc-num,.sc-bl .sc-lbl{color:#BAE1FF}
 .sc-tt .sc-num,.sc-tt .sc-lbl{color:rgba(255,255,255,.8)}
 
@@ -253,7 +254,7 @@ tbody td{padding:13px 18px;color:rgba(255,255,255,.85)}
 }
 .bpk{background:rgba(255,179,186,.2);color:#FFB3BA;border:1px solid rgba(255,179,186,.3)}
 .bgn{background:rgba(186,255,201,.2);color:#BAFFC9;border:1px solid rgba(186,255,201,.3)}
-.byw{background:rgba(255,255,186,.2);color:var(--yellow-d);border:1px solid rgba(255,255,186,.3)}
+.byw{background:rgba(255,214,10,.28);color:var(--yellow-v);border:1px solid rgba(255,214,10,.5);font-weight:900}
 .bbl{background:rgba(186,225,255,.2);color:#BAE1FF;border:1px solid rgba(186,225,255,.3)}
 
 .empty{text-align:center;padding:60px 20px;color:rgba(255,255,255,.3)}
@@ -345,10 +346,22 @@ tbody td{padding:13px 18px;color:rgba(255,255,255,.85)}
   </div>
   <div class="card-bd" id="form-body">
 
+    <div class="field" id="fw-role">
+      <label>الفئة <span class="req">*</span></label>
+      <div class="type-grid">
+        <div class="topt ap ap-blue" id="role-teacher" onclick="pickRole(this,'معلمة')">
+          <span class="ck">✓</span><span class="emo">👩‍🏫</span>معلمة
+        </div>
+        <div class="topt" id="role-admin" onclick="pickRole(this,'إدارية')">
+          <span class="ck">✓</span><span class="emo">🗂️</span>إدارية
+        </div>
+      </div>
+    </div>
+
     <div class="field" id="fw-name">
-      <label>اسم المعلمة <span class="req">*</span></label>
+      <label>الاسم <span class="req">*</span></label>
       <input class="finput" id="f-name" type="text" placeholder="الاسم الكامل">
-      <div class="err-msg">يرجى كتابة اسم المعلمة</div>
+      <div class="err-msg">يرجى كتابة الاسم</div>
     </div>
 
     <div class="field" id="fw-type">
@@ -439,7 +452,12 @@ tbody td{padding:13px 18px;color:rgba(255,255,255,.85)}
         <option>استئذان صباحي</option>
         <option>استئذان مسائي</option>
       </select>
-      <input class="finput" id="fn" placeholder="🔍 بحث باسم المعلمة..." oninput="render()">
+      <select class="finput" id="fr" onchange="render()" style="max-width:140px">
+        <option value="">👥 الكل</option>
+        <option value="معلمة">👩‍🏫 معلمات</option>
+        <option value="إدارية">🗂️ إداريات</option>
+      </select>
+      <input class="finput" id="fn" placeholder="🔍 بحث بالاسم..." oninput="render()">
     </div>
 
     <!-- جدول -->
@@ -457,7 +475,8 @@ tbody td{padding:13px 18px;color:rgba(255,255,255,.85)}
         <table>
           <thead>
             <tr>
-              <th>اسم المعلمة</th>
+              <th>الاسم</th>
+              <th>الفئة</th>
               <th>الحالة</th>
               <th>اليوم</th>
               <th>الملاحظات</th>
@@ -493,19 +512,78 @@ tbody td{padding:13px 18px;color:rgba(255,255,255,.85)}
   </div>
 </div>
 
+<!-- ══════════ مودال تأكيد عام (أسئلة نعم/لا ورسائل) ══════════ -->
+<div class="pwmodal" id="confirmModal">
+  <div class="pwbox">
+    <div class="pwico" id="cf-ico">📋</div>
+    <h3 id="cf-title"></h3>
+    <p id="cf-body" style="white-space:pre-line;line-height:1.9"></p>
+    <div class="pwbtns" id="cf-btns">
+      <button class="btn-sm btn-prnt" id="cf-no" style="flex:1;padding:12px">لا</button>
+      <button class="btn-sm btn-exp" id="cf-yes" style="flex:1;padding:12px">نعم</button>
+    </div>
+  </div>
+</div>
+
 <script>
 var API_URL='https://script.google.com/macros/s/AKfycbxTJg9I8iSUncceJ0mpLxc0_DO4czRUDPBOVBZat5fThk9CNKArPquv-U-ImLQrQL6q/exec';
 var DEFAULT_PW='abrar123';
 var selType='', selDay='', curDayFilter='';
+var selRole='معلمة'; // الفئة الافتراضية: معلمة
+var PERM_MAX=3;  // عدد مرات الاستئذان الصباحي/المسائي المسموحة شهرياً (الحالة العامة)
+
+// ── حد استثنائي (6 مرات) لهذا الشهر الميلادي لمعلمات محدّدات ──────────────
+// لتغييره لشهر آخر لاحقاً: عدّلي SPECIAL_LIMIT_MONTH (السنة، والشهر بترقيم 0=يناير...8=سبتمبر)
+var SPECIAL_LIMIT_MAX=6;
+var SPECIAL_LIMIT_MONTH={year:2026, month:8}; // سبتمبر 2026
+var SPECIAL_LIMIT_NAMES=['هدى','نوال','رباب','أميرة','شيخة','دلال','سامية','ناديه','بدريه','هديل','منى','تغريد','هند','نورة'];
+
+// ── توحيد الأسماء العربية لتقبل اختلافات الإملاء البسيطة (أ/إ/آ/ا، ة/ه، ى/ي، إلخ) ──
+function normalizeArabic(s){
+  if(!s)return '';
+  return s
+    .replace(/[ً-ْٰـ]/g,'') // إزالة التشكيل والتطويل
+    .replace(/[أإآا]/g,'ا')
+    .replace(/ة/g,'ه')
+    .replace(/[ىي]/g,'ي')
+    .replace(/[^؀-ۿ]/g,'') // إزالة أي رموز/مسافات/أرقام غير عربية
+    .trim();
+}
+// هل الاسم المُدخل يطابق إحدى المعلمات صاحبات الحد الاستثنائي هذا الشهر؟
+function isSpecialLimitEligible(name){
+  if(!name)return false;
+  var tokens=name.split(/[\s.]+/).map(normalizeArabic).filter(Boolean);
+  var targets=SPECIAL_LIMIT_NAMES.map(normalizeArabic);
+  return tokens.some(function(t){return targets.indexOf(t)!==-1});
+}
+function isSpecialLimitMonth(){
+  var n=new Date();
+  return n.getFullYear()===SPECIAL_LIMIT_MONTH.year && n.getMonth()===SPECIAL_LIMIT_MONTH.month;
+}
+// الحد الشهري الفعلي لمعلمة/إدارية معينة
+function getPermMax(name){
+  if(isSpecialLimitMonth() && isSpecialLimitEligible(name))return SPECIAL_LIMIT_MAX;
+  return PERM_MAX;
+}
+
 var RECS=[];
 var isAuthed=false;
 
+// مهلة زمنية للطلبات حتى لا تبقى الصفحة "معلّقة" بلا رد
+function fetchWithTimeout(url,opts,ms){
+  opts=opts||{};ms=ms||25000;
+  if(typeof AbortController==='undefined')return fetch(url,opts);
+  var ctrl=new AbortController();
+  opts.signal=ctrl.signal;
+  var t=setTimeout(function(){ctrl.abort()},ms);
+  return fetch(url,opts).finally(function(){clearTimeout(t)});
+}
 async function apiGet(action){
-  var res=await fetch(API_URL+'?action='+action,{method:'GET'});
+  var res=await fetchWithTimeout(API_URL+'?action='+action,{method:'GET'});
   return await res.json();
 }
 async function apiPost(payload){
-  var res=await fetch(API_URL,{
+  var res=await fetchWithTimeout(API_URL,{
     method:'POST',
     headers:{'Content-Type':'text/plain;charset=utf-8'}, // يتفادى مشاكل CORS
     body:JSON.stringify(payload)
@@ -530,8 +608,7 @@ async function addRecordRemote(rec){
     return true;
   }catch(e){
     console.error('تعذر الحفظ',e);
-    alert('حدث خطأ أثناء حفظ البيانات، تأكدي من الاتصال بالإنترنت وحاولي مرة أخرى.');
-    return false;
+    return false; // الرسالة تُعرض على الشاشة من sendForm
   }
 }
 async function clearRemote(){
@@ -569,16 +646,147 @@ function showPwModal(){
 function closePwModal(){
   document.getElementById('pwmodal').classList.remove('on');
 }
+function todayKey(){return new Date().toDateString()}
+function loadAuthState(){
+  try{
+    if(localStorage.getItem('att_auth_date')===todayKey())isAuthed=true;
+  }catch(e){}
+}
+function saveAuthState(){
+  try{localStorage.setItem('att_auth_date',todayKey())}catch(e){}
+}
 async function submitPw(){
   var val=document.getElementById('pw-input').value;
   var correct=await getPassword();
   if(val===correct){
     isAuthed=true;
+    saveAuthState(); // تبقى الجلسة مفتوحة طوال اليوم لنفس الجهاز
     closePwModal();
     go('dash');
   }else{
     document.getElementById('pw-err').style.display='block';
   }
+}
+
+// ── اختيار الفئة: معلمة / إدارية ─────────────────────────────────────────
+function pickRole(el,val){
+  selRole=val;
+  document.querySelectorAll('#fw-role .topt').forEach(function(o){
+    o.classList.remove('ap','ap-pink','ap-green','ap-yellow','ap-blue');
+  });
+  el.classList.add('ap','ap-blue');
+}
+
+
+// ── مودال تأكيد عام (نعم/لا) — يرجع Promise<boolean> ─────────────────────
+function askConfirm(opts){
+  return new Promise(function(resolve){
+    document.getElementById('cf-ico').textContent=opts.icon||'📋';
+    document.getElementById('cf-title').textContent=opts.title||'';
+    document.getElementById('cf-body').textContent=opts.body||'';
+    var yesBtn=document.getElementById('cf-yes');
+    var noBtn=document.getElementById('cf-no');
+    yesBtn.textContent=opts.yesText||'نعم';
+    noBtn.textContent=opts.noText||'لا';
+    noBtn.style.display='';
+    function cleanup(val){
+      document.getElementById('confirmModal').classList.remove('on');
+      yesBtn.onclick=null;noBtn.onclick=null;
+      resolve(val);
+    }
+    yesBtn.onclick=function(){cleanup(true)};
+    noBtn.onclick=function(){cleanup(false)};
+    document.getElementById('confirmModal').classList.add('on');
+  });
+}
+// ── مودال معلومة/دعاء بزر واحد — يرجع Promise<void> ──────────────────────
+function askInfo(opts){
+  return new Promise(function(resolve){
+    document.getElementById('cf-ico').textContent=opts.icon||'🤍';
+    document.getElementById('cf-title').textContent=opts.title||'';
+    document.getElementById('cf-body').textContent=opts.body||'';
+    var yesBtn=document.getElementById('cf-yes');
+    var noBtn=document.getElementById('cf-no');
+    noBtn.style.display='none';
+    yesBtn.textContent=opts.btnText||'متابعة';
+    function cleanup(){
+      document.getElementById('confirmModal').classList.remove('on');
+      yesBtn.onclick=null;
+      resolve();
+    }
+    yesBtn.onclick=cleanup;
+    document.getElementById('confirmModal').classList.add('on');
+  });
+}
+
+// ── فحوصات ما قبل الإرسال حسب الفئة ونوع الاستئذان ───────────────────────
+// ترجع true = يُسمح بالاستئذان ويُحتسب، false = يُرفض الاستئذان ولا يُحتسب.
+async function runPreChecks(){
+  // المعلمة + استئذان صباحي/مسائي: تأكيد الحصص ثم تأمينها
+  if(selRole==='معلمة' && (selType==='استئذان صباحي'||selType==='استئذان مسائي')){
+    var hasClasses=await askConfirm({
+      icon:'📚',
+      title:'تأكيد الجدول',
+      body:'هل يوجد لديكِ حصص أساسية أو احتياط اليوم؟\nيرجى التأكد من الجدول مرة أخرى قبل المتابعة.',
+      yesText:'نعم، يوجد لدي حصص',
+      noText:'لا، لا يوجد لدي حصص'
+    });
+    if(!hasClasses){
+      await askInfo({
+        icon:'🌸',
+        title:'بارك الله فيكِ',
+        body:'نسأل الله أن ييسر أمركِ ويرزقكِ من حيث لا تحتسبين.\n\nنتمنى لكِ يوماً موفقاً 🤍',
+        btnText:'متابعة الإرسال'
+      });
+      return true;
+    }
+    // يوجد حصص: يجب تأمينها أولاً، وإلا يُرفض الاستئذان
+    var secured=await askConfirm({
+      icon:'🔐',
+      title:'تأمين الحصة',
+      body:'هل قمتِ بتأمين الحصة (بمعلمة بديلة أو احتياط)؟',
+      yesText:'نعم، تم التأمين',
+      noText:'لا، لم يتم التأمين'
+    });
+    if(!secured){
+      await askInfo({
+        icon:'🚫',
+        title:'لا يمكن قبول الاستئذان',
+        body:'لا يمكن تسجيل الاستئذان قبل تأمين الحصة بمعلمة بديلة أو احتياط.\nيرجى تأمينها أولاً ثم إعادة تسجيل الاستئذان.\n\nجزاكِ الله خيراً ووفقكِ لكل خير 🤍',
+        btnText:'حسناً'
+      });
+      return false;
+    }
+    await askInfo({
+      icon:'✅',
+      title:'بارك الله فيكِ',
+      body:'جزاكِ الله خيراً على حرصكِ وتأمين الحصة.\n\nنسأل الله أن ييسر أمركِ 🤍',
+      btnText:'متابعة الإرسال'
+    });
+    return true;
+  }
+
+  // الإدارية: يوجد أعمال عالقة ← يُرفض الاستئذان، لا يوجد ← يُقبل ويُحتسب
+  if(selRole==='إدارية'){
+    var hasPending=await askConfirm({
+      icon:'🗂️',
+      title:'الأعمال الإدارية',
+      body:'هل يوجد لديكِ أعمال إدارية عالقة؟',
+      yesText:'نعم، يوجد أعمال عالقة',
+      noText:'لا، لا يوجد أعمال عالقة'
+    });
+    if(hasPending){
+      await askInfo({
+        icon:'🚫',
+        title:'لا يمكن قبول الاستئذان',
+        body:'لا يمكن تسجيل الاستئذان قبل إنهاء أو تسليم الأعمال الإدارية العالقة.\nيرجى إنهاؤها أولاً ثم إعادة تسجيل الاستئذان.\n\nجزاكِ الله خيراً 🤍',
+        btnText:'حسناً'
+      });
+      return false;
+    }
+    return true;
+  }
+  return true;
 }
 async function changePwFlow(){
   var cur=await getPassword();
@@ -602,13 +810,28 @@ async function go(p){
   document.querySelectorAll('.tb').forEach(function(b,i){
     b.classList.toggle('on',['form','dash'][i]===p);
   });
-  if(p==='dash'){await loadRecs();updateStats();render()}
+  if(p==='dash'){autoSelectDashDay();await checkMonthlyClear();await loadRecs();updateStats();render()}
+}
+
+// ── فلتر اليوم في لوحة المتابعة يبدأ دائماً على "اليوم" (جديد يوم بيوم) ──
+function autoSelectDashDay(){
+  var days=['الأحد','الاثنين','الثلاثاء','الأربعاء','الخميس'];
+  var todayIdx=new Date().getDay();
+  var btns=document.querySelectorAll('.dtb');
+  btns.forEach(function(b){b.classList.remove('on')});
+  if(todayIdx>=0&&todayIdx<=4){
+    curDayFilter=days[todayIdx];
+    if(btns[todayIdx+1])btns[todayIdx+1].classList.add('on');
+  }else{
+    curDayFilter='';
+    if(btns[0])btns[0].classList.add('on');
+  }
 }
 
 // ── اختيار نوع الاستئذان ──────────────────────────────────────────────────
 function pickType(el,val,cls){
   selType=val;
-  document.querySelectorAll('.topt').forEach(function(o){
+  document.querySelectorAll('#fw-type .topt').forEach(function(o){
     o.classList.remove('ap','ap-pink','ap-green','ap-yellow','ap-blue');
   });
   el.classList.add('ap','ap-'+cls);
@@ -625,11 +848,30 @@ function pickDay(el,val){
   document.getElementById('e-day').style.display='none';
 }
 
-// ── حساب عدد الاستئذانات الصباحية والمسائية لمعلمة معينة ─────────────────
+// ── مطابقة الأسماء بالاسم الأول فقط (لا يوجد تكرار بين المعلمات بالاسم الأول) ──
+// تُقبل فروقات الإملاء البسيطة (نورة/نوره، أميرة/اميرة/اميره...) عبر normalizeArabic.
+// حتى لو كتبت المعلمة اسمها الأول فقط دون لقب، تُحتسب صحيحة لنفس الشخصة.
+function firstNameNorm(s){
+  var tokens=(s||'').split(/\s+/).map(normalizeArabic).filter(Boolean);
+  return tokens.length?tokens[0]:'';
+}
+function namesMatch(a,b){
+  var fa=firstNameNorm(a), fb=firstNameNorm(b);
+  return !!fa && fa===fb;
+}
+
+// ── هل السجل ضمن الشهر الميلادي الحالي؟ (استئذانات أغسطس لا تُحتسب في سبتمبر) ──
+function isSameMonth(ts){
+  if(!ts)return true; // سجلات قديمة بدون طابع زمني: تُحتسب احتياطاً
+  var d=new Date(ts), n=new Date();
+  return d.getFullYear()===n.getFullYear() && d.getMonth()===n.getMonth();
+}
+
+// ── حساب عدد الاستئذانات الصباحية والمسائية خلال الشهر الميلادي الحالي فقط ──
 function countPermissions(name){
   var recs=getRecs();
   return recs.filter(function(r){
-    return r.name===name &&
+    return namesMatch(r.name,name) && isSameMonth(r.ts) &&
            (r.type==='استئذان صباحي' || r.type==='استئذان مسائي');
   }).length;
 }
@@ -649,13 +891,23 @@ async function sendForm(){
 
   var sendBtn=document.querySelector('.btn-send');
   var origBtnText=sendBtn?sendBtn.textContent:'';
-  if(sendBtn){sendBtn.disabled=true;sendBtn.textContent='جارِ الإرسال...'}
+  if(sendBtn){sendBtn.disabled=true;sendBtn.textContent='جارِ التحقق...'}
+
+  // ── أسئلة التأكيد حسب الفئة/النوع (جدول الحصص للمعلمة، الأعمال العالقة للإدارية) ──
+  var preOk=await runPreChecks();
+  if(!preOk){
+    if(sendBtn){sendBtn.disabled=false;sendBtn.textContent=origBtnText}
+    return;
+  }
+
+  if(sendBtn){sendBtn.textContent='جارِ الإرسال...'}
   await loadRecs();
   if(sendBtn){sendBtn.disabled=false;sendBtn.textContent=origBtnText}
 
-  // ── تحقق: هل تجاوزت 3 استئذانات صباحية/مسائية؟ ──────────────────────
+  // ── تحقق: هل تجاوزت الحد الشهري (3 مرات عادةً، أو 6 للمحدّدات هذا الشهر)؟ ──
   var isPermission = (selType==='استئذان صباحي' || selType==='استئذان مسائي');
-  if(isPermission && countPermissions(name) >= 3){
+  var permMax = getPermMax(name);
+  if(isPermission && countPermissions(name) >= permMax){
     document.getElementById('form-body').style.display='none';
     document.getElementById('succ').style.display='block';
     document.getElementById('succ').innerHTML=
@@ -663,12 +915,12 @@ async function sendForm(){
       '<h3 style="color:#f87171;font-size:22px;margin-bottom:14px">نأسف، لا يمكن تسجيل الطلب</h3>'+
       '<p style="color:rgba(255,255,255,.6);font-size:15px;line-height:1.9;margin-bottom:28px">'+
         'عزيزتي <strong style="color:#fff">'+name+'</strong>،<br>'+
-        'لقد تجاوزتِ الحد المسموح به من الاستئذانات<br>'+
-        '(الحد الأقصى <strong style="color:#fbbf24">3 استئذانات</strong> صباحية ومسائية مجتمعة).<br><br>'+
+        'لقد تجاوزتِ الحد المسموح به من الاستئذانات لهذا الشهر<br>'+
+        '(الحد الأقصى <strong style="color:#fbbf24">'+permMax+' استئذانات</strong> صباحية ومسائية مجتمعة في الشهر الميلادي).<br><br>'+
         'يُرجى التواصل مع الإدارة للمزيد من التفاصيل.'+
       '</p>'+
       '<div style="background:rgba(248,113,113,.1);border:1px solid rgba(248,113,113,.3);border-radius:14px;padding:16px;margin-bottom:28px">'+
-        '<div style="font-size:13px;color:#fca5a5">📊 عدد استئذاناتك المسجلة: <strong>'+countPermissions(name)+' / 3</strong></div>'+
+        '<div style="font-size:13px;color:#fca5a5">📊 عدد استئذاناتك هذا الشهر: <strong>'+countPermissions(name)+' / '+permMax+'</strong></div>'+
       '</div>'+
       '<button class="btn-new" onclick="resetForm()">رجوع</button>';
     return;
@@ -678,14 +930,29 @@ async function sendForm(){
   var hh=now.getHours().toString().padStart(2,'0');
   var mm=now.getMinutes().toString().padStart(2,'0');
   var time=hh+':'+mm;
-  var newRec={name:name,type:selType,day:selDay,note:note,time:time,ts:now.getTime()};
+  var newRec={name:name,role:selRole,type:selType,day:selDay,note:note,time:time,ts:now.getTime()};
+  if(sendBtn){sendBtn.disabled=true;sendBtn.textContent='جارِ الإرسال...'}
   var saved=await addRecordRemote(newRec);
-  if(!saved)return;
+  if(sendBtn){sendBtn.disabled=false;sendBtn.textContent=origBtnText}
+  if(!saved){
+    // فشل الحفظ: نعرض رسالة واضحة على الشاشة بدل ترك المستخدمة بلا رد
+    document.getElementById('form-body').style.display='none';
+    document.getElementById('succ').style.display='block';
+    document.getElementById('succ').innerHTML=
+      '<div style="font-size:70px;margin-bottom:20px">📡</div>'+
+      '<h3 style="color:#fbbf24;font-size:22px;margin-bottom:14px">لم يتم إرسال الطلب</h3>'+
+      '<p style="color:rgba(255,255,255,.6);font-size:15px;line-height:1.9;margin-bottom:28px">'+
+        'تعذّر حفظ الطلب على الخادم.<br>'+
+        'تأكدي من الاتصال بالإنترنت، ومن فتح المنصة عبر رابطها الرسمي<br>'+
+        '(وليس من ملف محفوظ على الجهاز)، ثم حاولي مرة أخرى.'+
+      '</p>'+
+      '<button class="btn-new" onclick="resetForm()">إعادة المحاولة</button>';
+    return;
+  }
   RECS.unshift(newRec);
 
   // عرض النجاح
-  var cnt=countPermissions(name);
-  var remaining = isPermission ? (3-cnt) : null;
+  var remaining = isPermission ? (permMax-countPermissions(name)) : null;
   document.getElementById('form-body').style.display='none';
   document.getElementById('succ').style.display='block';
   document.getElementById('succ').innerHTML=
@@ -696,7 +963,7 @@ async function sendForm(){
       '<span class="pill">📅 '+selDay+'</span>'+
       '<span class="pill">'+selType+'</span>'+
       '<span class="pill">⏰ '+time+'</span>'+
-      (isPermission ? '<span class="pill" style="background:rgba(251,191,36,.1);border-color:rgba(251,191,36,.3);color:#fbbf24">متبقي '+remaining+' استئذان</span>' : '')+
+      (remaining!==null ? '<span class="pill" style="background:rgba(251,191,36,.1);border-color:rgba(251,191,36,.3);color:#fbbf24">متبقي '+remaining+' هذا الشهر</span>' : '')+
     '</div>'+
     '<br><br><button class="btn-new" onclick="resetForm()">＋ تسجيل استئذان جديد</button>';
 }
@@ -705,11 +972,17 @@ async function sendForm(){
 function resetForm(){
   document.getElementById('f-name').value='';
   document.getElementById('f-note').value='';
-  document.querySelectorAll('.topt').forEach(function(o){
+  document.querySelectorAll('#fw-type .topt').forEach(function(o){
     o.classList.remove('ap','ap-pink','ap-green','ap-yellow','ap-blue');
   });
   document.querySelectorAll('.dbt').forEach(function(b){b.classList.remove('on')});
   selType='';selDay='';
+  // إعادة الفئة إلى الافتراضي: معلمة
+  document.querySelectorAll('#fw-role .topt').forEach(function(o){
+    o.classList.remove('ap','ap-pink','ap-green','ap-yellow','ap-blue');
+  });
+  document.getElementById('role-teacher').classList.add('ap','ap-blue');
+  selRole='معلمة';
   document.getElementById('fw-name').classList.remove('has-err');
   document.getElementById('fw-type').classList.remove('has-err');
   document.getElementById('fw-day').classList.remove('has-err');
@@ -729,10 +1002,12 @@ function filterDay(el,val){
 function getFiltered(){
   var recs=getRecs();
   var ft=document.getElementById('ft').value;
+  var fr=document.getElementById('fr')?document.getElementById('fr').value:'';
   var fn=document.getElementById('fn').value.trim();
   return recs.filter(function(r){
     return(!curDayFilter||r.day===curDayFilter)&&
            (!ft||r.type===ft)&&
+           (!fr||r.role===fr)&&
            (!fn||r.name.includes(fn));
   });
 }
@@ -754,12 +1029,13 @@ function render(){
   var tb=document.getElementById('tbody');
   document.getElementById('tcnt').textContent=data.length+' سجل';
   if(!data.length){
-    tb.innerHTML='<tr><td colspan="5"><div class="empty"><div class="ei">📭</div><p>لا توجد سجلات</p></div></td></tr>';
+    tb.innerHTML='<tr><td colspan="6"><div class="empty"><div class="ei">📭</div><p>لا توجد سجلات</p></div></td></tr>';
     return;
   }
   tb.innerHTML=data.map(function(r){
     return '<tr>'+
       '<td class="tc-name">'+r.name+'</td>'+
+      '<td>'+(r.role==='إدارية'?'🗂️ إدارية':'👩‍🏫 معلمة')+'</td>'+
       '<td><span class="badge '+BCLS[r.type]+'">'+r.type+'</span></td>'+
       '<td>'+r.day+'</td>'+
       '<td class="tc-note">'+(r.note||'—')+'</td>'+
@@ -790,9 +1066,9 @@ async function clearAll(){
 function exportExcel(){
   var recs=getRecs();
   if(!recs.length){alert('لا توجد بيانات للتصدير');return}
-  var csv='\uFEFF'+'اسم المعلمة,نوع الاستئذان,اليوم,وقت التسجيل,الملاحظات\n';
+  var csv='\uFEFF'+'الاسم,الفئة,نوع الاستئذان,اليوم,وقت التسجيل,الملاحظات\n';
   recs.forEach(function(r){
-    csv+='"'+r.name+'","'+r.type+'","'+r.day+'","'+r.time+'","'+(r.note||'')+'"\n';
+    csv+='"'+r.name+'","'+(r.role||'معلمة')+'","'+r.type+'","'+r.day+'","'+r.time+'","'+(r.note||'')+'"\n';
   });
   var a=document.createElement('a');
   a.href=URL.createObjectURL(new Blob([csv],{type:'text/csv;charset=utf-8'}));
@@ -818,32 +1094,33 @@ function autoSelectToday(){
 }
 autoSelectToday();
 
-// ── مسح تلقائي نهاية يوم الخميس الساعة 11:59 م ──────────────────────────
-var clearedThuFlag=null; // yyyy-mm-dd string of the Thursday already cleared, kept in memory for this session
-async function checkClear(){
+// ── مسح تلقائي بداية كل شهر ميلادي (لتصفير عداد الـ3 استئذانات لكل معلمة/إدارية) ──
+// يعمل فقط في اليوم الأول من الشهر، ومرة واحدة لكل شهر لكل جهاز (عبر localStorage)
+// حتى لا يُمسح سجل الشهر الحالي عن طريق الخطأ عند فتح التطبيق لاحقاً في الشهر.
+function monthKey(){var n=new Date();return n.getFullYear()+'-'+(n.getMonth()+1)}
+function getClearedMonth(){try{return localStorage.getItem('att_cleared_month')}catch(e){return null}}
+function setClearedMonth(k){try{localStorage.setItem('att_cleared_month',k)}catch(e){}}
+async function checkMonthlyClear(){
   var now=new Date();
-  // الخميس = getDay()===4، الساعة 23، الدقيقة 59
-  if(now.getDay()===4 && now.getHours()===23 && now.getMinutes()===59){
-    var k=now.toDateString();
-    if(clearedThuFlag!==k){
-      await clearRemote();RECS=[];
-      clearedThuFlag=k;
-      // إشعار للمستخدم إذا كانت اللوحة مفتوحة
-      if(document.getElementById('pg-dash').style.display!=='none'){
-        updateStats();render();
-      }
-    }
-  }
+  if(now.getDate()!==1)return; // نُنفّذ فقط في اليوم الأول من الشهر
+  var cur=monthKey();
+  if(getClearedMonth()===cur)return; // مسحنا هذا الشهر من قبل من هذا الجهاز
+  await clearRemote();
+  RECS=[];
+  setClearedMonth(cur);
+  if(document.getElementById('pg-dash').style.display!=='none'){updateStats();render()}
 }
-checkClear();
-setInterval(checkClear,30000);
+
+loadAuthState();
+checkMonthlyClear();
+setInterval(checkMonthlyClear,5*60000); // إعادة التحقق كل 5 دقائق (تحسّباً لبقاء الصفحة مفتوحة عبر منتصف الليل)
 setInterval(async function(){
   if(document.getElementById('pg-dash').style.display!=='none'){
     await loadRecs();updateStats();render();
   }
 },30000);
 // تحميل أولي للبيانات المشتركة
-loadRecs();
+loadRecs().then(function(){checkMonthlyClear()});
 </script>
 </body>
 </html>
