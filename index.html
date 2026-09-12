@@ -114,6 +114,7 @@ textarea.finput{resize:vertical;min-height:90px}
 .topt.ap-yellow{background:rgba(255,214,10,.18);border-color:var(--yellow-v);color:var(--yellow-v)}
 .topt.ap-blue{background:rgba(186,225,255,.15);border-color:#BAE1FF;color:#BAE1FF}
 #fw-role .type-grid{grid-template-columns:1fr 1fr}
+.topt.disabled{opacity:.32;filter:grayscale(70%);cursor:not-allowed;pointer-events:none}
 
 /* أيام */
 .days{display:flex;gap:8px;flex-wrap:wrap}
@@ -354,6 +355,18 @@ tbody td{padding:13px 18px;color:rgba(255,255,255,.85)}
   </div>
   <div class="card-bd" id="form-body">
 
+    <div style="margin-bottom:22px;background:rgba(99,102,241,.08);border:1.5px solid rgba(99,102,241,.25);border-radius:16px;padding:18px 20px">
+      <div style="font-size:15px;font-weight:800;color:#fff;margin-bottom:12px;display:flex;align-items:center;gap:8px">
+        📢 تنويه مهم بخصوص تسجيل الغياب والاستئذان
+      </div>
+      <div style="font-size:13px;color:rgba(255,255,255,.75);line-height:2.1">
+        🤒 <strong style="color:#fff">تسجيل الغياب</strong> (مرضي / اضطراري): يبدأ الساعة <strong style="color:#4ade80">6:00 صباحًا</strong> وينتهي الساعة <strong style="color:#4ade80">10:00 صباحًا</strong>.<br>
+        🌅 <strong style="color:#fff">تسجيل الاستئذان</strong> (صباحي / مسائي): يبدأ الساعة <strong style="color:#4ade80">6:00 صباحًا</strong> وينتهي الساعة <strong style="color:#4ade80">7:00 صباحًا</strong> فقط.<br>
+        ⚠️ <strong style="color:#fff">الحد الأقصى اليومي للاستئذان:</strong> 6 معلمات فقط في اليوم، و3 إداريات فقط في اليوم.<br>
+        ⏰ عند الدخول خارج هذه الأوقات ستظهر رسالة <strong style="color:#fbbf24">"النموذج مغلق حالياً"</strong> تلقائيًا، ولن يكون التسجيل متاحًا حتى الساعة 6:00 صباحًا من اليوم التالي.
+      </div>
+    </div>
+
     <div class="field" id="fw-role">
       <label>الفئة <span class="req">*</span></label>
       <div class="type-grid">
@@ -381,14 +394,15 @@ tbody td{padding:13px 18px;color:rgba(255,255,255,.85)}
         <div class="topt" onclick="pickType(this,'غائبة اضطراري','green')">
           <span class="ck">✓</span><span class="emo">🆘</span>غائبة اضطراري
         </div>
-        <div class="topt" onclick="pickType(this,'استئذان صباحي','yellow')">
+        <div class="topt" id="type-morning" onclick="pickType(this,'استئذان صباحي','yellow')">
           <span class="ck">✓</span><span class="emo">🌅</span>استئذان صباحي
         </div>
-        <div class="topt" onclick="pickType(this,'استئذان مسائي','blue')">
+        <div class="topt" id="type-evening" onclick="pickType(this,'استئذان مسائي','blue')">
           <span class="ck">✓</span><span class="emo">🌆</span>استئذان مسائي
         </div>
       </div>
       <div class="err-msg" id="e-type">يرجى اختيار نوع الاستئذان</div>
+      <div id="perm-note" style="font-size:12px;margin-top:10px;line-height:1.8;display:none"></div>
     </div>
 
     <div class="field" id="fw-day">
@@ -420,6 +434,9 @@ tbody td{padding:13px 18px;color:rgba(255,255,255,.85)}
     <br><br>
     <button class="btn-new" onclick="resetForm()">＋ تسجيل استئذان جديد</button>
   </div>
+
+  <!-- النموذج مغلق حالياً (خارج وقت الدوام) -->
+  <div class="succ" id="gate-closed"></div>
 </div>
 </div>
 
@@ -441,6 +458,13 @@ tbody td{padding:13px 18px;color:rgba(255,255,255,.85)}
       <div class="sc sc-tt"><div class="sc-num" id="s5">0</div><div class="sc-lbl">📋 الإجمالي</div></div>
     </div>
 
+    <!-- تقرير منفصل: معلمات / إداريات -->
+    <div class="dtabs" id="rtabs" style="margin-bottom:16px">
+      <button class="dtb on" onclick="filterRole(this,'معلمة')">👩‍🏫 تقرير المعلمات</button>
+      <button class="dtb" onclick="filterRole(this,'إدارية')">🗂️ تقرير الإداريات</button>
+      <button class="dtb" onclick="filterRole(this,'')">👥 الكل معاً</button>
+    </div>
+
     <!-- اختيار الأسبوع -->
     <div class="wkbar">
       <button class="btn-sm btn-prnt wk-nav" onclick="shiftWeek(-1)">◀ الأسبوع السابق</button>
@@ -460,11 +484,6 @@ tbody td{padding:13px 18px;color:rgba(255,255,255,.85)}
         <option>استئذان صباحي</option>
         <option>استئذان مسائي</option>
       </select>
-      <select class="finput" id="fr" onchange="render()" style="max-width:140px">
-        <option value="">👥 الكل</option>
-        <option value="معلمة">👩‍🏫 معلمات</option>
-        <option value="إدارية">🗂️ إداريات</option>
-      </select>
       <input class="finput" id="fn" placeholder="🔍 بحث بالاسم..." oninput="render()">
     </div>
 
@@ -476,6 +495,7 @@ tbody td{padding:13px 18px;color:rgba(255,255,255,.85)}
           <button class="btn-sm btn-prnt" onclick="printReport()">🖨️ طباعة</button>
           <button class="btn-sm btn-exp" onclick="exportExcel()">⬇️ تصدير Excel</button>
           <button class="btn-sm btn-clr" onclick="clearAll()">🗑️ مسح الكل</button>
+          <button class="btn-sm btn-chpw" id="btn-lock" onclick="toggleManualLock()">🔒 إغلاق الاستئذان</button>
           <button class="btn-sm btn-chpw" onclick="changePwFlow()">🔑 Change Password</button>
         </div>
       </div>
@@ -538,10 +558,19 @@ tbody td{padding:13px 18px;color:rgba(255,255,255,.85)}
 var API_URL='https://script.google.com/macros/s/AKfycbxTJg9I8iSUncceJ0mpLxc0_DO4czRUDPBOVBZat5fThk9CNKArPquv-U-ImLQrQL6q/exec';
 var DEFAULT_PW='abrar123';
 var selType='', selDay='', curDayFilter='';
+var curRoleFilter='معلمة'; // تقرير المتابعة منفصل افتراضياً: يبدأ بتقرير المعلمات
 var curWeekStart=0; // بداية الأسبوع المعروض في لوحة المتابعة (يُضبط عند فتحها)
 var selRole='معلمة'; // الفئة الافتراضية: معلمة
 var selChildAcc=false; // هل الاستئذان الحالي لمرافقة الأبناء؟
 var PERM_MAX=3;  // استئذانات الشهر العادية (لجميع المعلمات والإداريات)
+
+// ══ أوقات وحدود يومية جديدة (إضافية فوق حصة الشهر أعلاه، الشرطان معاً) ══
+var WINDOW_OPEN_HOUR=6;    // بداية فتح النموذج بالكامل (غياب + استئذان)
+var WINDOW_CLOSE_HOUR=10;  // إغلاق النموذج بالكامل (10:00 صباحاً) — يشمل الغياب
+var PERM_CLOSE_HOUR=7;     // إغلاق الاستئذان تحديداً (صباحي/مسائي) — 7:00 صباحاً
+var DAILY_MAX_TEACHER=6;   // الحد اليومي المشترك لاستئذانات المعلمات (صباحي+مسائي معاً)
+var DAILY_MAX_ADMIN=3;     // الحد اليومي المشترك لاستئذانات الإداريات
+var MANUAL_LOCK_NAME='__تحكم_النظام__'; // اسم خاص لسجلات القفل/الفتح اليدوي (لا تظهر في الجداول)
 
 // ── رصيد إضافي لمرافقة الأبناء (3 مرات) لمعلمات محدّدات، منفصل عن رصيد الشهر ──
 // أي: المعلمة المحدّدة لها 3 لمرافقة الطفل + 3 استئذانات الشهر العادية.
@@ -729,6 +758,7 @@ function pickRole(el,val){
     o.classList.remove('ap','ap-pink','ap-green','ap-yellow','ap-blue');
   });
   el.classList.add('ap','ap-blue');
+  updatePermUI(); // الحصة اليومية تختلف باختلاف الفئة (معلمة/إدارية)
 }
 
 
@@ -883,6 +913,9 @@ async function go(p){
     buildWeekOptions();
     buildDayTabs();
     updateStats();render();
+    updateLockButton();
+  }else{
+    updateFormGate(); // عند الرجوع لصفحة النموذج: تحديث حالة الفتح/الإغلاق فوراً
   }
 }
 
@@ -975,6 +1008,7 @@ function shiftWeek(dir){
 
 // ── اختيار نوع الاستئذان ──────────────────────────────────────────────────
 function pickType(el,val,cls){
+  if(el.classList.contains('disabled'))return; // معطّل حالياً (وقت/حصة/قفل يدوي)
   selType=val;
   document.querySelectorAll('#fw-type .topt').forEach(function(o){
     o.classList.remove('ap','ap-pink','ap-green','ap-yellow','ap-blue');
@@ -1010,6 +1044,145 @@ function isSameMonth(ts){
   if(!ts)return true; // سجلات قديمة بدون طابع زمني: تُحتسب احتياطاً
   var d=new Date(ts), n=new Date();
   return d.getFullYear()===n.getFullYear() && d.getMonth()===n.getMonth();
+}
+
+// ══════════ الحد اليومي المشترك + القفل اليدوي + أوقات الفتح/الإغلاق ══════════
+
+// عدد استئذانات (صباحي+مسائي) لهذه الفئة "اليوم" فقط (حصة مشتركة بين الجميع)
+function countDailyLeaves(role){
+  var todayK=dayKeyOf(Date.now());
+  return getRecs().filter(function(r){
+    return r.name!==MANUAL_LOCK_NAME && r.role===role && r.ts && dayKeyOf(r.ts)===todayK &&
+           (r.type==='استئذان صباحي' || r.type==='استئذان مسائي');
+  }).length;
+}
+
+// هل الاستئذان مُغلَق يدوياً من الإدارة اليوم؟ (يُقرأ من آخر سجل تحكم بتاريخ اليوم)
+function currentManualLock(){
+  var ctrl=getRecs().filter(function(r){return r.name===MANUAL_LOCK_NAME});
+  if(!ctrl.length)return false;
+  ctrl.sort(function(a,b){return (b.ts||0)-(a.ts||0)});
+  var latest=ctrl[0];
+  if(!latest.ts || dayKeyOf(latest.ts)!==dayKeyOf(Date.now()))return false; // القفل يخص يومه فقط ويُصفَّر تلقائياً غداً
+  return latest.type==='قفل';
+}
+
+// حالة النموذج الآن: أوقات الفتح/الإغلاق + القفل اليدوي
+function computeGateState(){
+  var now=new Date();
+  var h=now.getHours()+now.getMinutes()/60;
+  var locked=currentManualLock();
+  return{
+    hour:h,
+    locked:locked,
+    formOpen: h>=WINDOW_OPEN_HOUR && h<WINDOW_CLOSE_HOUR,           // الغياب + الاستئذان معاً
+    permOpen: h>=WINDOW_OPEN_HOUR && h<PERM_CLOSE_HOUR && !locked   // الاستئذان فقط
+  };
+}
+
+// تبديل القفل اليدوي (من لوحة المتابعة فقط)
+async function toggleManualLock(){
+  var locked=currentManualLock();
+  var yes=await askConfirm({
+    icon: locked?'🔓':'🔒',
+    title: locked?'فتح الاستئذان':'إغلاق الاستئذان الآن',
+    body: locked
+      ? 'هل تريدين إعادة فتح تسجيل الاستئذان الآن؟'
+      : 'هل تريدين إغلاق تسجيل الاستئذان (الصباحي/المسائي) الآن؟\nسيُمنع تسجيل أي استئذان جديد لبقية اليوم حتى تُعيدي فتحه، بينما يبقى تسجيل الغياب المرضي/الاضطراري متاحاً.',
+    yesText:'نعم', noText:'إلغاء'
+  });
+  if(!yes)return;
+  var now=new Date();
+  var hh=now.getHours().toString().padStart(2,'0'), mm=now.getMinutes().toString().padStart(2,'0');
+  await addRecordRemote({name:MANUAL_LOCK_NAME, role:'نظام', type:(locked?'فتح':'قفل'), day:'', note:'', time:hh+':'+mm, ts:now.getTime()});
+  await loadRecs();
+  updateLockButton();
+  updateFormGate();
+}
+function updateLockButton(){
+  var btn=document.getElementById('btn-lock');
+  if(!btn)return;
+  btn.textContent = currentManualLock() ? '🔓 فتح الاستئذان' : '🔒 إغلاق الاستئذان';
+}
+
+// تحديث واجهة النموذج: إظهار/إخفاء بانر الإغلاق العام + تعطيل خياري الاستئذان وملاحظة الحصة
+function updateFormGate(){
+  var st=computeGateState();
+  var closedDiv=document.getElementById('gate-closed');
+  var formBody=document.getElementById('form-body');
+  var succDiv=document.getElementById('succ');
+  if(!closedDiv||!formBody)return;
+  if(!st.formOpen){
+    formBody.style.display='none';
+    succDiv.style.display='none';
+    closedDiv.style.display='block';
+    var msg = st.hour<WINDOW_OPEN_HOUR
+      ? 'سيتم فتح نموذج التسجيل يومياً الساعة <strong style="color:#fbbf24">6:00 صباحاً</strong>.'
+      : 'انتهى وقت التسجيل لهذا اليوم (يُغلق الساعة <strong style="color:#fbbf24">10:00 صباحاً</strong>).<br>يُفتح النموذج غداً الساعة 6:00 صباحاً.';
+    closedDiv.innerHTML =
+      '<div class="succ-ico" style="background:linear-gradient(135deg,#64748b,#475569)">⏰</div>'+
+      '<h3>النموذج مغلق حالياً</h3>'+
+      '<p>'+msg+'</p>';
+  } else if(closedDiv.style.display==='block'){
+    closedDiv.style.display='none';
+    if(succDiv.style.display!=='block')formBody.style.display='block';
+  }
+  updatePermUI(st);
+}
+
+// تعطيل/تفعيل خياري الاستئذان صباحي/مسائي + ملاحظة الحصة المتبقية اليوم
+function updatePermUI(st){
+  st=st||computeGateState();
+  var dailyMax = selRole==='إدارية' ? DAILY_MAX_ADMIN : DAILY_MAX_TEACHER;
+  var used = countDailyLeaves(selRole);
+  var remaining = Math.max(0, dailyMax-used);
+  var disablePerm = !st.permOpen || remaining<=0;
+
+  ['type-morning','type-evening'].forEach(function(id){
+    var el=document.getElementById(id);
+    if(el)el.classList.toggle('disabled', disablePerm);
+  });
+
+  var note=document.getElementById('perm-note');
+  if(note){
+    if(st.locked){
+      note.style.color='#f87171';
+      note.textContent='🔒 تم إغلاق تسجيل الاستئذان مؤقتاً من قبل الإدارة اليوم.';
+      note.style.display='block';
+    }else if(!st.permOpen && st.formOpen){
+      note.style.color='#f87171';
+      note.textContent='⏰ انتهى وقت الاستئذان اليومي (يُغلق الساعة 7:00 صباحاً). يمكن تسجيل الغياب المرضي/الاضطراري حتى الساعة 10:00 صباحاً.';
+      note.style.display='block';
+    }else if(remaining<=0 && st.permOpen){
+      note.style.color='#f87171';
+      note.textContent='🚫 اكتمل العدد المسموح به لاستئذانات '+(selRole==='إدارية'?'الإداريات':'المعلمات')+' اليوم (الحد الأقصى '+dailyMax+').';
+      note.style.display='block';
+    }else if(st.permOpen){
+      note.style.color='#4ade80';
+      note.textContent='✅ متبقٍ اليوم '+remaining+' من '+dailyMax+' لـ'+(selRole==='إدارية'?'الإداريات':'المعلمات')+'.';
+      note.style.display='block';
+    }else{
+      note.style.display='none';
+    }
+  }
+  // إلغاء اختيار استئذان صباحي/مسائي تلقائياً إن أصبح غير متاح
+  if(disablePerm && (selType==='استئذان صباحي'||selType==='استئذان مسائي')){
+    selType='';
+    document.querySelectorAll('#fw-type .topt').forEach(function(o){
+      o.classList.remove('ap','ap-pink','ap-green','ap-yellow','ap-blue');
+    });
+  }
+}
+
+// رسالة رفض عامة (نفس أسلوب رسالة اكتمال حصة الشهر) — للإغلاق الزمني/اليدوي/الحد اليومي
+function showGateRejection(icon,title,bodyHtml){
+  document.getElementById('form-body').style.display='none';
+  document.getElementById('succ').style.display='block';
+  document.getElementById('succ').innerHTML=
+    '<div style="font-size:70px;margin-bottom:20px">'+icon+'</div>'+
+    '<h3 style="color:#f87171;font-size:22px;margin-bottom:14px">'+title+'</h3>'+
+    '<p style="color:rgba(255,255,255,.6);font-size:15px;line-height:1.9;margin-bottom:28px">'+bodyHtml+'</p>'+
+    '<button class="btn-new" onclick="resetForm()">رجوع</button>';
 }
 
 // ── استئذانات المعلمة (صباحي/مسائي) خلال الشهر الميلادي الحالي فقط ────────
@@ -1058,6 +1231,43 @@ async function sendForm(){
   var sendBtn=document.querySelector('.btn-send');
   var origBtnText=sendBtn?sendBtn.textContent:'';
   if(sendBtn){sendBtn.disabled=true;sendBtn.textContent='جارِ التحقق...'}
+
+  // ── فحوصات البوابة الزمنية والحصة اليومية والقفل اليدوي (قبل أي شيء آخر) ──
+  await loadRecs(); // تحميل أحدث البيانات لضمان دقة العدّ اليومي وحالة القفل
+  var gate=computeGateState();
+  var isPermTypeNow=(selType==='استئذان صباحي'||selType==='استئذان مسائي');
+
+  if(!gate.formOpen){
+    if(sendBtn){sendBtn.disabled=false;sendBtn.textContent=origBtnText}
+    showGateRejection('⏰','التسجيل مغلق حالياً',
+      gate.hour<WINDOW_OPEN_HOUR
+        ? 'لم يبدأ وقت التسجيل بعد.<br>يُفتح النموذج يومياً الساعة <strong style="color:#fbbf24">6:00 صباحاً</strong>.'
+        : 'انتهى وقت التسجيل لهذا اليوم (يُغلق الساعة <strong style="color:#fbbf24">10:00 صباحاً</strong>).<br>يُفتح النموذج غداً الساعة 6:00 صباحاً.');
+    return;
+  }
+  if(isPermTypeNow){
+    if(gate.locked){
+      if(sendBtn){sendBtn.disabled=false;sendBtn.textContent=origBtnText}
+      showGateRejection('🔒','الاستئذان مغلق حالياً',
+        'تم إغلاق تسجيل الاستئذان مؤقتاً من قبل الإدارة اليوم.<br>يرجى المحاولة لاحقاً أو التواصل مع الإدارة.');
+      return;
+    }
+    if(!gate.permOpen){
+      if(sendBtn){sendBtn.disabled=false;sendBtn.textContent=origBtnText}
+      showGateRejection('⏰','انتهى وقت الاستئذان اليومي',
+        'ينتهي استقبال طلبات الاستئذان (الصباحي/المسائي) الساعة <strong style="color:#fbbf24">7:00 صباحاً</strong> يومياً.<br>لا يزال بإمكانكِ تسجيل غياب مرضي أو اضطراري حتى الساعة 10:00 صباحاً.');
+      return;
+    }
+    var dailyMaxNow = selRole==='إدارية' ? DAILY_MAX_ADMIN : DAILY_MAX_TEACHER;
+    var dailyUsedNow = countDailyLeaves(selRole);
+    if(dailyUsedNow >= dailyMaxNow){
+      if(sendBtn){sendBtn.disabled=false;sendBtn.textContent=origBtnText}
+      showGateRejection('🚫','اكتمل العدد',
+        'اكتمل العدد المسموح به لاستئذانات '+(selRole==='إدارية'?'الإداريات':'المعلمات')+' اليوم.<br>'+
+        'الحد الأقصى اليومي: <strong style="color:#fbbf24">'+dailyMaxNow+'</strong>.<br><br>يمكنكِ تسجيل غياب مرضي أو اضطراري بدلاً من ذلك إن لزم الأمر.');
+      return;
+    }
+  }
 
   // ── أسئلة التأكيد حسب الفئة/النوع (جدول الحصص للمعلمة، الأعمال العالقة للإدارية) ──
   var preOk=await runPreChecks();
@@ -1165,6 +1375,7 @@ function resetForm(){
   document.getElementById('fw-day').classList.remove('has-err');
   document.getElementById('form-body').style.display='block';
   document.getElementById('succ').style.display='none';
+  updateFormGate();
 }
 
 // ── فلتر اليوم في الداشبورد ───────────────────────────────────────────────
@@ -1177,17 +1388,24 @@ function filterDay(el,val){
 
 // ── بيانات مفلترة ─────────────────────────────────────────────────────────
 function getFiltered(){
-  var recs=getRecs();
+  var recs=getRecs().filter(function(r){return r.name!==MANUAL_LOCK_NAME}); // استبعاد سجلات القفل/الفتح اليدوي
   var ft=document.getElementById('ft').value;
-  var fr=document.getElementById('fr')?document.getElementById('fr').value:'';
   var fn=document.getElementById('fn').value.trim();
   return recs.filter(function(r){
     return recWeekStart(r)===curWeekStart &&          // سجلات الأسبوع المختار فقط
            (!curDayFilter||recDayKey(r)===curDayFilter)&& // ثم اليوم المحدد بتاريخه
            (!ft||r.type===ft)&&
-           (!fr||r.role===fr)&&
+           (!curRoleFilter||r.role===curRoleFilter)&&     // تقرير منفصل: معلمات / إداريات / الكل
            (!fn||r.name.includes(fn));
   });
+}
+
+// ── تبديل تقرير المتابعة بين المعلمات والإداريات (منفصلان تماماً) ─────────
+function filterRole(el,val){
+  curRoleFilter=val;
+  document.querySelectorAll('#rtabs .dtb').forEach(function(b){b.classList.remove('on')});
+  el.classList.add('on');
+  updateStats();render();
 }
 
 var BCLS={
@@ -1245,7 +1463,7 @@ function updateStats(){
   document.getElementById('s4').textContent=c['استئذان مسائي'];
   document.getElementById('s5').textContent=data.length;
   var sub=document.getElementById('dash-sub');
-  if(sub)sub.textContent='المعروض: '+viewLabel()+' • كل أسبوع منفصل عن الآخر';
+  if(sub)sub.textContent='المعروض: '+viewLabel()+' • '+(curRoleFilter?('تقرير '+(curRoleFilter==='إدارية'?'الإداريات':'المعلمات')):'كل الفئات معاً')+' • كل أسبوع منفصل عن الآخر';
 }
 
 // ── مسح الكل ──────────────────────────────────────────────────────────────
@@ -1264,7 +1482,8 @@ function exportExcel(){
   });
   var a=document.createElement('a');
   a.href=URL.createObjectURL(new Blob([csv],{type:'text/csv;charset=utf-8'}));
-  a.download='حضور_المعلمات_'+viewLabel().replace(/[^\u0600-\u06FF0-9]+/g,'_')+'.csv';
+  var roleTag = curRoleFilter==='إدارية'?'الإداريات':(curRoleFilter==='معلمة'?'المعلمات':'الكل');
+  a.download='حضور_'+roleTag+'_'+viewLabel().replace(/[^\u0600-\u06FF0-9]+/g,'_')+'.csv';
   a.click();
 }
 
@@ -1307,12 +1526,14 @@ loadAuthState();
 checkMonthlyClear();
 setInterval(checkMonthlyClear,5*60000); // إعادة التحقق كل 5 دقائق (تحسّباً لبقاء الصفحة مفتوحة عبر منتصف الليل)
 setInterval(async function(){
+  await loadRecs();
+  updateFormGate(); // تحديث حالة الفتح/الإغلاق والحصة اليومية باستمرار (حتى في صفحة النموذج)
   if(document.getElementById('pg-dash').style.display!=='none'){
-    await loadRecs();updateStats();render();
+    updateStats();render();
   }
 },30000);
 // تحميل أولي للبيانات المشتركة
-loadRecs().then(function(){checkMonthlyClear()});
+loadRecs().then(function(){checkMonthlyClear();updateFormGate();});
 </script>
 </body>
 </html>
