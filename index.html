@@ -360,10 +360,9 @@ tbody td{padding:13px 18px;color:rgba(255,255,255,.85)}
         📢 تنويه مهم بخصوص تسجيل الغياب والاستئذان
       </div>
       <div style="font-size:13px;color:rgba(255,255,255,.75);line-height:2.1">
-        🤒 <strong style="color:#fff">تسجيل الغياب</strong> (مرضي / اضطراري): يبدأ الساعة <strong style="color:#4ade80">6:00 صباحًا</strong> وينتهي الساعة <strong style="color:#4ade80">10:00 صباحًا</strong>.<br>
-        🌅 <strong style="color:#fff">تسجيل الاستئذان</strong> (صباحي / مسائي): يبدأ الساعة <strong style="color:#4ade80">6:00 صباحًا</strong> وينتهي الساعة <strong style="color:#4ade80">7:00 صباحًا</strong> فقط.<br>
+        🤒🌅 <strong style="color:#fff">تسجيل الغياب والاستئذان</strong> (مرضي / اضطراري / صباحي / مسائي): يبدأ الساعة <strong style="color:#4ade80">5:00 صباحًا</strong> وينتهي الساعة <strong style="color:#4ade80">7:00 صباحًا</strong> لكلٍّ منهما معًا.<br>
         ⚠️ <strong style="color:#fff">الحد الأقصى اليومي للاستئذان:</strong> 6 معلمات فقط في اليوم، و3 إداريات فقط في اليوم.<br>
-        ⏰ عند الدخول خارج هذه الأوقات ستظهر رسالة <strong style="color:#fbbf24">"النموذج مغلق حالياً"</strong> تلقائيًا، ولن يكون التسجيل متاحًا حتى الساعة 6:00 صباحًا من اليوم التالي.
+        ⏰ عند الدخول خارج هذه الأوقات ستظهر رسالة <strong style="color:#fbbf24">"النموذج مغلق حالياً"</strong> تلقائيًا، ولن يكون التسجيل متاحًا حتى الساعة 5:00 صباحًا من اليوم التالي.
       </div>
     </div>
 
@@ -565,9 +564,9 @@ var selChildAcc=false; // هل الاستئذان الحالي لمرافقة ا
 var PERM_MAX=3;  // استئذانات الشهر العادية (لجميع المعلمات والإداريات)
 
 // ══ أوقات وحدود يومية جديدة (إضافية فوق حصة الشهر أعلاه، الشرطان معاً) ══
-var WINDOW_OPEN_HOUR=6;    // بداية فتح النموذج بالكامل (غياب + استئذان)
-var WINDOW_CLOSE_HOUR=10;  // إغلاق النموذج بالكامل (10:00 صباحاً) — يشمل الغياب
-var PERM_CLOSE_HOUR=7;     // إغلاق الاستئذان تحديداً (صباحي/مسائي) — 7:00 صباحاً
+var WINDOW_OPEN_HOUR=5;    // بداية فتح النموذج بالكامل (غياب + استئذان) — موحّد
+var WINDOW_CLOSE_HOUR=7;   // إغلاق النموذج بالكامل (7:00 صباحاً) — يشمل الغياب والاستئذان معاً
+var PERM_CLOSE_HOUR=7;     // إغلاق الاستئذان (نفس وقت إغلاق النموذج بالكامل الآن)
 var DAILY_MAX_TEACHER=6;   // الحد اليومي المشترك لاستئذانات المعلمات (صباحي+مسائي معاً)
 var DAILY_MAX_ADMIN=3;     // الحد اليومي المشترك لاستئذانات الإداريات
 var MANUAL_LOCK_NAME='__تحكم_النظام__'; // اسم خاص لسجلات القفل/الفتح اليدوي (لا تظهر في الجداول)
@@ -678,6 +677,15 @@ async function loadRecs(){
   try{
     RECS=await apiGet('list');
     if(!Array.isArray(RECS))RECS=[];
+    // بعض عمليات النشر في Apps Script تُرجع الحقل ts كنص وليس رقماً
+    // (مثال: "1788060604935" بدل 1788060604935)، وهذا يجعل new Date(ts) غير صالح
+    // فتفشل مطابقة الأسبوع/اليوم بصمت. نحوّله هنا لرقم دائماً لضمان عمل الفلاتر.
+    RECS.forEach(function(r){
+      if(r && r.ts!=null && r.ts!==''){
+        var n=Number(r.ts);
+        r.ts = isNaN(n) ? null : n;
+      }
+    });
   }catch(e){
     console.error('تعذر تحميل البيانات',e);
     RECS=[];
@@ -1117,8 +1125,8 @@ function updateFormGate(){
     succDiv.style.display='none';
     closedDiv.style.display='block';
     var msg = st.hour<WINDOW_OPEN_HOUR
-      ? 'سيتم فتح نموذج التسجيل يومياً الساعة <strong style="color:#fbbf24">6:00 صباحاً</strong>.'
-      : 'انتهى وقت التسجيل لهذا اليوم (يُغلق الساعة <strong style="color:#fbbf24">10:00 صباحاً</strong>).<br>يُفتح النموذج غداً الساعة 6:00 صباحاً.';
+      ? 'سيتم فتح نموذج التسجيل يومياً الساعة <strong style="color:#fbbf24">5:00 صباحاً</strong>.'
+      : 'انتهى وقت التسجيل لهذا اليوم (يُغلق الساعة <strong style="color:#fbbf24">7:00 صباحاً</strong>).<br>يُفتح النموذج غداً الساعة 5:00 صباحاً.';
     closedDiv.innerHTML =
       '<div class="succ-ico" style="background:linear-gradient(135deg,#64748b,#475569)">⏰</div>'+
       '<h3>النموذج مغلق حالياً</h3>'+
@@ -1151,7 +1159,7 @@ function updatePermUI(st){
       note.style.display='block';
     }else if(!st.permOpen && st.formOpen){
       note.style.color='#f87171';
-      note.textContent='⏰ انتهى وقت الاستئذان اليومي (يُغلق الساعة 7:00 صباحاً). يمكن تسجيل الغياب المرضي/الاضطراري حتى الساعة 10:00 صباحاً.';
+      note.textContent='⏰ انتهى وقت الاستئذان والغياب اليومي (يُغلق الساعة 7:00 صباحاً).';
       note.style.display='block';
     }else if(remaining<=0 && st.permOpen){
       note.style.color='#f87171';
@@ -1241,8 +1249,8 @@ async function sendForm(){
     if(sendBtn){sendBtn.disabled=false;sendBtn.textContent=origBtnText}
     showGateRejection('⏰','التسجيل مغلق حالياً',
       gate.hour<WINDOW_OPEN_HOUR
-        ? 'لم يبدأ وقت التسجيل بعد.<br>يُفتح النموذج يومياً الساعة <strong style="color:#fbbf24">6:00 صباحاً</strong>.'
-        : 'انتهى وقت التسجيل لهذا اليوم (يُغلق الساعة <strong style="color:#fbbf24">10:00 صباحاً</strong>).<br>يُفتح النموذج غداً الساعة 6:00 صباحاً.');
+        ? 'لم يبدأ وقت التسجيل بعد.<br>يُفتح النموذج يومياً الساعة <strong style="color:#fbbf24">5:00 صباحاً</strong>.'
+        : 'انتهى وقت التسجيل لهذا اليوم (يُغلق الساعة <strong style="color:#fbbf24">7:00 صباحاً</strong>).<br>يُفتح النموذج غداً الساعة 5:00 صباحاً.');
     return;
   }
   if(isPermTypeNow){
@@ -1255,7 +1263,7 @@ async function sendForm(){
     if(!gate.permOpen){
       if(sendBtn){sendBtn.disabled=false;sendBtn.textContent=origBtnText}
       showGateRejection('⏰','انتهى وقت الاستئذان اليومي',
-        'ينتهي استقبال طلبات الاستئذان (الصباحي/المسائي) الساعة <strong style="color:#fbbf24">7:00 صباحاً</strong> يومياً.<br>لا يزال بإمكانكِ تسجيل غياب مرضي أو اضطراري حتى الساعة 10:00 صباحاً.');
+        'ينتهي استقبال طلبات الاستئذان والغياب الساعة <strong style="color:#fbbf24">7:00 صباحاً</strong> يومياً.');
       return;
     }
     var dailyMaxNow = selRole==='إدارية' ? DAILY_MAX_ADMIN : DAILY_MAX_TEACHER;
