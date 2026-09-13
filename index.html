@@ -655,11 +655,14 @@ var isAuthed=false;
 // مهلة زمنية للطلبات حتى لا تبقى الصفحة "معلّقة" بلا رد
 function fetchWithTimeout(url,opts,ms){
   opts=opts||{};ms=ms||25000;
-  if(typeof AbortController==='undefined')return fetch(url,opts);
-  var ctrl=new AbortController();
-  opts.signal=ctrl.signal;
-  var t=setTimeout(function(){ctrl.abort()},ms);
-  return fetch(url,opts).finally(function(){clearTimeout(t)});
+  // ملاحظة: لا نستخدم AbortController/AbortSignal هنا عمداً — بعض البيئات
+  // (متصفح داخل تطبيق آخر، أو إضافات مثل Grammarly) تفشل عند محاولة نسخ
+  // كائن AbortSignal عبر postMessage (DataCloneError)، مما كان يُسقط تحميل
+  // البيانات بصمت. نستخدم بدلاً منه سباقاً بسيطاً بين الطلب ومهلة زمنية.
+  var timeoutPromise=new Promise(function(_,reject){
+    setTimeout(function(){reject(new Error('انتهت المهلة الزمنية للطلب'))},ms);
+  });
+  return Promise.race([fetch(url,opts),timeoutPromise]);
 }
 async function apiGet(action){
   // منع المتصفح من إعادة استخدام نسخة قديمة مخزَّنة مؤقتاً (قد تكون فارغة من أول استدعاء)
@@ -1472,7 +1475,18 @@ function viewLabel(){
 function updateStats(){
   var data=getFiltered();
   var diag=document.getElementById('diag-info');
-  if(diag)diag.textContent='🔍 تشخيص: وصل من الخادم '+getRecs().length+' سجل إجمالاً (قبل أي فلترة)';
+  if(diag){
+    var all=getRecs();
+    var txt='🔍 تشخيص: وصل من الخادم '+all.length+' سجل إجمالاً (قبل أي فلترة)';
+    var withTs=all.filter(function(r){return r&&r.ts!=null&&!isNaN(r.ts)});
+    if(withTs.length){
+      var minTs=Math.min.apply(null,withTs.map(function(r){return r.ts}));
+      var maxTs=Math.max.apply(null,withTs.map(function(r){return r.ts}));
+      txt+=' | أقدم سجل: '+new Date(minTs).toLocaleString('ar-SA')+' | أحدث سجل: '+new Date(maxTs).toLocaleString('ar-SA');
+    }
+    txt+=' | سجلات بلا تاريخ صالح (ts): '+(all.length-withTs.length);
+    diag.textContent=txt;
+  }
   var c={'غائبة مرضي':0,'غائبة اضطراري':0,'استئذان صباحي':0,'استئذان مسائي':0};
   data.forEach(function(r){if(c[r.type]!==undefined)c[r.type]++});
   document.getElementById('s1').textContent=c['غائبة مرضي'];
