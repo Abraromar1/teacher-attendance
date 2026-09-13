@@ -445,6 +445,7 @@ tbody td{padding:13px 18px;color:rgba(255,255,255,.85)}
   <div class="card-hd" style="background:linear-gradient(135deg,rgba(15,23,42,.8),rgba(30,27,75,.8))">
     <h2><span class="live"></span>لوحة المتابعة اليومية</h2>
     <p id="dash-sub">مخصصة للوكيلتين والإداريتين • يتجدد تلقائياً</p>
+    <p id="diag-info" style="color:#fbbf24;font-weight:800;font-size:14px;margin-top:6px"></p>
   </div>
   <div class="card-bd">
 
@@ -661,7 +662,9 @@ function fetchWithTimeout(url,opts,ms){
   return fetch(url,opts).finally(function(){clearTimeout(t)});
 }
 async function apiGet(action){
-  var res=await fetchWithTimeout(API_URL+'?action='+action,{method:'GET'});
+  // منع المتصفح من إعادة استخدام نسخة قديمة مخزَّنة مؤقتاً (قد تكون فارغة من أول استدعاء)
+  var bust='&_ts='+Date.now();
+  var res=await fetchWithTimeout(API_URL+'?action='+action+bust,{method:'GET',cache:'no-store'});
   return await res.json();
 }
 async function apiPost(payload){
@@ -675,8 +678,13 @@ async function apiPost(payload){
 
 async function loadRecs(){
   try{
-    RECS=await apiGet('list');
-    if(!Array.isArray(RECS))RECS=[];
+    var raw=await apiGet('list');
+    // بعض إصدارات الخلفية قد تُرجع البيانات ملفوفة داخل كائن (مثل {data:[...]}) بدل مصفوفة مباشرة
+    if(Array.isArray(raw)) RECS=raw;
+    else if(raw && Array.isArray(raw.data)) RECS=raw.data;
+    else if(raw && Array.isArray(raw.records)) RECS=raw.records;
+    else RECS=[];
+    console.log('[تشخيص] عدد السجلات المستلمة من الخادم:', RECS.length);
     // بعض عمليات النشر في Apps Script تُرجع الحقل ts كنص وليس رقماً
     // (مثال: "1788060604935" بدل 1788060604935)، وهذا يجعل new Date(ts) غير صالح
     // فتفشل مطابقة الأسبوع/اليوم بصمت. نحوّله هنا لرقم دائماً لضمان عمل الفلاتر.
@@ -1463,6 +1471,8 @@ function viewLabel(){
 // ── تحديث الإحصائيات (للأسبوع/اليوم المعروض فقط) ─────────────────────────
 function updateStats(){
   var data=getFiltered();
+  var diag=document.getElementById('diag-info');
+  if(diag)diag.textContent='🔍 تشخيص: وصل من الخادم '+getRecs().length+' سجل إجمالاً (قبل أي فلترة)';
   var c={'غائبة مرضي':0,'غائبة اضطراري':0,'استئذان صباحي':0,'استئذان مسائي':0};
   data.forEach(function(r){if(c[r.type]!==undefined)c[r.type]++});
   document.getElementById('s1').textContent=c['غائبة مرضي'];
