@@ -126,6 +126,7 @@ textarea.finput{resize:vertical;min-height:90px}
   transition:.2s;font-family:'Tajawal',sans-serif;
 }
 .dbt:hover{border-color:#818cf8;color:#818cf8}
+.dbt:disabled{opacity:.3;cursor:not-allowed;border-color:rgba(255,255,255,.1)!important;color:rgba(255,255,255,.4)!important}
 .dbt.on{background:linear-gradient(135deg,#6366f1,#8b5cf6);
   color:#fff;border-color:transparent;
   box-shadow:0 4px 15px rgba(99,102,241,.35)}
@@ -280,7 +281,7 @@ tbody td{padding:13px 18px;color:rgba(255,255,255,.85)}
 /* طباعة */
 @media print{
   body{background:#fff!important;color:#000!important}
-  .tabs,.hdr,.btn-send,.btns-wrap,.filters,.dtabs{display:none!important}
+  .tc-act,.tabs,.hdr,.btn-send,.btns-wrap,.filters,.dtabs{display:none!important}
   .card{background:#fff!important;border:1px solid #ddd!important;box-shadow:none!important}
   .card-hd{background:#f5f5f5!important;color:#000!important}
   table{font-size:12px}
@@ -360,9 +361,10 @@ tbody td{padding:13px 18px;color:rgba(255,255,255,.85)}
         📢 تنويه مهم بخصوص تسجيل الغياب والاستئذان
       </div>
       <div style="font-size:13px;color:rgba(255,255,255,.75);line-height:2.1">
-        🤒🌅 <strong style="color:#fff">تسجيل الغياب والاستئذان</strong> (مرضي / اضطراري / صباحي / مسائي): يبدأ الساعة <strong style="color:#4ade80">5:00 صباحًا</strong> وينتهي الساعة <strong style="color:#4ade80">7:00 صباحًا</strong> لكلٍّ منهما معًا.<br>
+        🤒🌅 <strong style="color:#fff">تسجيل الغياب والاستئذان</strong> (مرضي / اضطراري / صباحي / مسائي): يبدأ الساعة <strong style="color:#4ade80">12:00 منتصف الليل</strong> وينتهي الساعة <strong style="color:#4ade80">7:30 صباحًا</strong> لكلٍّ منهما معًا.<br>
         ⚠️ <strong style="color:#fff">الحد الأقصى اليومي للاستئذان:</strong> 6 معلمات فقط في اليوم، و3 إداريات فقط في اليوم.<br>
-        ⏰ عند الدخول خارج هذه الأوقات ستظهر رسالة <strong style="color:#fbbf24">"النموذج مغلق حالياً"</strong> تلقائيًا، ولن يكون التسجيل متاحًا حتى الساعة 5:00 صباحًا من اليوم التالي.
+        ⏰ عند الدخول خارج هذه الأوقات ستظهر رسالة <strong style="color:#fbbf24">"النموذج مغلق حالياً"</strong> تلقائيًا، ولن يكون التسجيل متاحًا حتى الساعة 12:00 منتصف الليل.<br>
+        📅 <strong style="color:#fff">اليوم:</strong> يمكن اختيار يوم اليوم فقط، وباقي الأيام مقفلة.
       </div>
     </div>
 
@@ -496,6 +498,7 @@ tbody td{padding:13px 18px;color:rgba(255,255,255,.85)}
           <button class="btn-sm btn-exp" onclick="exportExcel()">⬇️ تصدير Excel</button>
           <button class="btn-sm btn-clr" onclick="clearAll()">🗑️ مسح الكل</button>
           <button class="btn-sm btn-chpw" id="btn-lock" onclick="toggleManualLock()">🔒 إغلاق الاستئذان</button>
+          <button class="btn-sm btn-chpw" id="btn-temp" onclick="tempOpenFlow()">⏱️ فتح مؤقت</button>
           <button class="btn-sm btn-chpw" onclick="changePwFlow()">🔑 Change Password</button>
         </div>
       </div>
@@ -510,6 +513,7 @@ tbody td{padding:13px 18px;color:rgba(255,255,255,.85)}
               <th>التاريخ</th>
               <th>الملاحظات</th>
               <th>وقت التسجيل</th>
+              <th class="tc-act">إجراءات</th>
             </tr>
           </thead>
           <tbody id="tbody"></tbody>
@@ -554,6 +558,18 @@ tbody td{padding:13px 18px;color:rgba(255,255,255,.85)}
   </div>
 </div>
 
+<div class="modal-ov" id="editModal" style="position:fixed;inset:0;background:rgba(0,0,0,.6);display:none;align-items:center;justify-content:center;z-index:9999;padding:16px">
+  <div style="background:#1e1b4b;border:1px solid rgba(255,255,255,.15);border-radius:18px;padding:22px;width:100%;max-width:420px;color:#fff">
+    <h3 style="margin-bottom:14px">✏️ تعديل السجل</h3>
+    <label style="font-size:13px">الاسم</label><input class="finput" id="ed-name" style="margin-bottom:10px">
+    <label style="font-size:13px">الفئة</label><select class="finput" id="ed-role" style="margin-bottom:10px"><option>معلمة</option><option>إدارية</option></select>
+    <label style="font-size:13px">الحالة</label><select class="finput" id="ed-type" style="margin-bottom:10px"><option>غائبة مرضي</option><option>غائبة اضطراري</option><option>استئذان صباحي</option><option>استئذان مسائي</option></select>
+    <label style="font-size:13px">اليوم</label><select class="finput" id="ed-day" style="margin-bottom:10px"><option>الأحد</option><option>الاثنين</option><option>الثلاثاء</option><option>الأربعاء</option><option>الخميس</option></select>
+    <label style="font-size:13px">ملاحظات</label><textarea class="finput" id="ed-note" style="margin-bottom:14px"></textarea>
+    <div style="display:flex;gap:10px"><button class="btn-sm btn-exp" id="ed-save" onclick="saveEdit()" style="flex:1">حفظ</button><button class="btn-sm btn-clr" onclick="closeEdit()" style="flex:1">إلغاء</button></div>
+  </div>
+</div>
+<style>#editModal.on{display:flex!important}#editModal select.finput option{color:#000}</style>
 <script>
 var API_URL='https://script.google.com/macros/s/AKfycbxTJg9I8iSUncceJ0mpLxc0_DO4czRUDPBOVBZat5fThk9CNKArPquv-U-ImLQrQL6q/exec';
 var DEFAULT_PW='abrar123';
@@ -565,10 +581,11 @@ var selChildAcc=false; // هل الاستئذان الحالي لمرافقة ا
 var PERM_MAX=3;  // استئذانات الشهر العادية (لجميع المعلمات والإداريات)
 
 // ══ أوقات وحدود يومية جديدة (إضافية فوق حصة الشهر أعلاه، الشرطان معاً) ══
-var WINDOW_OPEN_HOUR=5;    // بداية فتح النموذج بالكامل (غياب + استئذان) — موحّد
-var WINDOW_CLOSE_HOUR=7;   // إغلاق النموذج بالكامل (7:00 صباحاً) — يشمل الغياب والاستئذان معاً
-var PERM_CLOSE_HOUR=7;     // إغلاق الاستئذان (نفس وقت إغلاق النموذج بالكامل الآن)
+var WINDOW_OPEN_HOUR=0;   // 12:00 منتصف الليل    // بداية فتح النموذج بالكامل (غياب + استئذان) — موحّد
+var WINDOW_CLOSE_HOUR=7.5; // 7:30 صباحاً  // إغلاق النموذج بالكامل (7:00 صباحاً) — يشمل الغياب والاستئذان معاً
+var PERM_CLOSE_HOUR=7.5;     // إغلاق الاستئذان (نفس وقت إغلاق النموذج بالكامل الآن)
 var DAILY_MAX_TEACHER=6;   // الحد اليومي المشترك لاستئذانات المعلمات (صباحي+مسائي معاً)
+var DAILY_MAX_TEMP_TEACHER=20; // الحد اليومي للمعلمات أثناء الفتح المؤقت
 var DAILY_MAX_ADMIN=3;     // الحد اليومي المشترك لاستئذانات الإداريات
 var MANUAL_LOCK_NAME='__تحكم_النظام__'; // اسم خاص لسجلات القفل/الفتح اليدوي (لا تظهر في الجداول)
 
@@ -650,6 +667,79 @@ function isChildLeaveNote(note){
 }
 
 var RECS=[];
+var EDIT_NAME='__تعديل_سجل__'; // سجلات تعديل/حذف الإدارة (لا تظهر في الجداول)
+
+// تطبيق تعديلات وحذوفات الإدارة على السجلات (تُحفظ كسجلات تحكم في نفس الشيت)
+function applyAdminEdits(list){
+  var edits=[],rest=[],map={};
+  list.forEach(function(r){if(!r)return; if(r.name===EDIT_NAME)edits.push(r); else rest.push(r)});
+  rest.forEach(function(r){r._key=String(r.ts)+'|'+r.name; map[r._key]=r});
+  edits.sort(function(a,b){return (a.ts||0)-(b.ts||0)});
+  var deleted={};
+  edits.forEach(function(e){
+    var p; try{p=JSON.parse(e.note||'{}')}catch(x){return}
+    var t=map[p.ref]; if(!t)return;
+    if(e.type==='حذف')deleted[p.ref]=true;
+    else if(e.type==='تعديل'&&p.set){
+      ['name','role','type','day','note'].forEach(function(k){if(p.set[k]!=null)t[k]=p.set[k]});
+    }
+  });
+  return rest.filter(function(r){return !deleted[r._key]});
+}
+// إخفاء التكرار: نفس الاسم + نفس النوع + نفس اليوم → يُحتفظ بأول سجل فقط
+function dedupeRecs(list){
+  var seen={},out=[];
+  list.slice().sort(function(a,b){return (a.ts||0)-(b.ts||0)}).forEach(function(r){
+    if(r.name===MANUAL_LOCK_NAME||!r.ts){out.push(r);return}
+    var k=firstNameNorm(r.name)+'|'+r.type+'|'+dayKeyOf(r.ts);
+    if(seen[k])return;
+    seen[k]=true;out.push(r);
+  });
+  return out;
+}
+async function adminDelete(key){
+  var r=getRecs().find(function(x){return x._key===key}); if(!r)return;
+  var yes=await askConfirm({icon:'🗑️',title:'حذف السجل',body:'حذف '+r.type+' لـ '+r.name+' ('+(r.ts?shortDate(r.ts):'')+')؟',yesText:'حذف',noText:'إلغاء'});
+  if(!yes)return;
+  // حذف الصف فعلياً من Google Sheet (يتطلب إضافة action=delete في Apps Script)
+  var res=null;
+  try{res=await apiPost({action:'delete', ts:r.ts, name:r._key.split('|').slice(1).join('|')})}catch(e){}
+  if(!(res && res.deleted===true)){
+    // الخلفية القديمة لا تدعم الحذف: نخفي السجل بسجل تحكم بدلاً من ذلك
+    var now=new Date();
+    await addRecordRemote({name:EDIT_NAME, role:'نظام', type:'حذف', day:'', note:JSON.stringify({ref:key}), time:hhmm(now), ts:now.getTime()});
+  }
+  await loadRecs();updateStats();render();
+}
+var EDIT_KEY='';
+function adminEdit(key){
+  var r=getRecs().find(function(x){return x._key===key}); if(!r)return;
+  EDIT_KEY=key;
+  document.getElementById('ed-name').value=r.name||'';
+  document.getElementById('ed-role').value=r.role||'معلمة';
+  document.getElementById('ed-type').value=r.type||'';
+  document.getElementById('ed-day').value=r.day||'';
+  document.getElementById('ed-note').value=r.note||'';
+  document.getElementById('editModal').classList.add('on');
+}
+function closeEdit(){document.getElementById('editModal').classList.remove('on');EDIT_KEY=''}
+async function saveEdit(){
+  if(!EDIT_KEY)return;
+  var set={
+    name:document.getElementById('ed-name').value.trim(),
+    role:document.getElementById('ed-role').value,
+    type:document.getElementById('ed-type').value,
+    day:document.getElementById('ed-day').value,
+    note:document.getElementById('ed-note').value.trim()
+  };
+  if(!set.name){alert('الاسم مطلوب');return}
+  var btn=document.getElementById('ed-save');btn.disabled=true;btn.textContent='جارِ الحفظ...';
+  var now=new Date();
+  await addRecordRemote({name:EDIT_NAME, role:'نظام', type:'تعديل', day:'', note:JSON.stringify({ref:EDIT_KEY,set:set}), time:hhmm(now), ts:now.getTime()});
+  btn.disabled=false;btn.textContent='حفظ';
+  closeEdit();
+  await loadRecs();updateStats();render();
+}
 var isAuthed=false;
 
 // مهلة زمنية للطلبات حتى لا تبقى الصفحة "معلّقة" بلا رد
@@ -704,6 +794,7 @@ async function loadRecs(){
         r.role = (role==='إدارية') ? 'إدارية' : 'معلمة';
       }
     });
+    RECS=dedupeRecs(applyAdminEdits(RECS));
   }catch(e){
     console.error('تعذر تحميل البيانات',e);
     RECS=[];
@@ -1046,6 +1137,7 @@ function pickType(el,val,cls){
 
 // ── اختيار اليوم ─────────────────────────────────────────────────────────
 function pickDay(el,val){
+  if(el.disabled)return;
   selDay=val;
   document.querySelectorAll('.dbt').forEach(function(b){b.classList.remove('on')});
   el.classList.add('on');
@@ -1092,17 +1184,45 @@ function currentManualLock(){
   if(!latest.ts || dayKeyOf(latest.ts)!==dayKeyOf(Date.now()))return false; // القفل يخص يومه فقط ويُصفَّر تلقائياً غداً
   return latest.type==='قفل';
 }
+// فتح مؤقت من الإدارة: يفتح الغياب والاستئذان خارج الوقت لعدد دقائق محدد
+function dailyMaxFor(role){
+  if(role==='إدارية')return DAILY_MAX_ADMIN;
+  return currentTempOpenUntil()?DAILY_MAX_TEMP_TEACHER:DAILY_MAX_TEACHER;
+}
+function currentTempOpenUntil(){
+  var ctrl=getRecs().filter(function(r){return r.name===MANUAL_LOCK_NAME && r.ts && dayKeyOf(r.ts)===dayKeyOf(Date.now())});
+  if(!ctrl.length)return 0;
+  ctrl.sort(function(a,b){return (b.ts||0)-(a.ts||0)});
+  var latest=ctrl[0];
+  if(latest.type!=='فتح مؤقت')return 0;
+  var until=latest.ts+(Number(latest.note)||30)*60000;
+  return until>Date.now()?until:0;
+}
+function hhmm(ts){var d=new Date(ts);return d.getHours().toString().padStart(2,'0')+':'+d.getMinutes().toString().padStart(2,'0')}
+async function tempOpenFlow(){
+  var m=prompt('فتح الغياب والاستئذان مؤقتاً — كم دقيقة؟','30');
+  if(m===null)return;
+  m=parseInt(m,10);
+  if(!(m>0&&m<=720)){alert('أدخلي عدد دقائق صحيح (1 – 720)');return}
+  var now=new Date();
+  await addRecordRemote({name:MANUAL_LOCK_NAME, role:'نظام', type:'فتح مؤقت', day:'', note:String(m), time:hhmm(now), ts:now.getTime()});
+  await loadRecs();
+  updateLockButton();updateFormGate();
+  alert('تم الفتح المؤقت حتى الساعة '+hhmm(now.getTime()+m*60000));
+}
 
 // حالة النموذج الآن: أوقات الفتح/الإغلاق + القفل اليدوي
 function computeGateState(){
   var now=new Date();
   var h=now.getHours()+now.getMinutes()/60;
   var locked=currentManualLock();
+  var tempUntil=currentTempOpenUntil();
   return{
     hour:h,
     locked:locked,
-    formOpen: h>=WINDOW_OPEN_HOUR && h<WINDOW_CLOSE_HOUR,           // الغياب + الاستئذان معاً
-    permOpen: h>=WINDOW_OPEN_HOUR && h<PERM_CLOSE_HOUR && !locked   // الاستئذان فقط
+    tempUntil:tempUntil,
+    formOpen: (h>=WINDOW_OPEN_HOUR && h<WINDOW_CLOSE_HOUR) || tempUntil>0,              // الغياب + الاستئذان معاً
+    permOpen: ((h>=WINDOW_OPEN_HOUR && h<PERM_CLOSE_HOUR) || tempUntil>0) && !locked   // الاستئذان فقط
   };
 }
 
@@ -1129,10 +1249,13 @@ function updateLockButton(){
   var btn=document.getElementById('btn-lock');
   if(!btn)return;
   btn.textContent = currentManualLock() ? '🔓 فتح الاستئذان' : '🔒 إغلاق الاستئذان';
+  var tb=document.getElementById('btn-temp');
+  if(tb){var u=currentTempOpenUntil();tb.textContent=u?('⏱️ مفتوح مؤقتاً حتى '+hhmm(u)):'⏱️ فتح مؤقت';}
 }
 
 // تحديث واجهة النموذج: إظهار/إخفاء بانر الإغلاق العام + تعطيل خياري الاستئذان وملاحظة الحصة
 function updateFormGate(){
+  if(selDay!==todayDayName())autoSelectToday(); // عند تغيّر اليوم (بعد منتصف الليل)
   var st=computeGateState();
   var closedDiv=document.getElementById('gate-closed');
   var formBody=document.getElementById('form-body');
@@ -1143,8 +1266,8 @@ function updateFormGate(){
     succDiv.style.display='none';
     closedDiv.style.display='block';
     var msg = st.hour<WINDOW_OPEN_HOUR
-      ? 'سيتم فتح نموذج التسجيل يومياً الساعة <strong style="color:#fbbf24">5:00 صباحاً</strong>.'
-      : 'انتهى وقت التسجيل لهذا اليوم (يُغلق الساعة <strong style="color:#fbbf24">7:00 صباحاً</strong>).<br>يُفتح النموذج غداً الساعة 5:00 صباحاً.';
+      ? 'سيتم فتح نموذج التسجيل يومياً الساعة <strong style="color:#fbbf24">12:00 منتصف الليل</strong>.'
+      : 'انتهى وقت التسجيل لهذا اليوم (يُغلق الساعة <strong style="color:#fbbf24">7:30 صباحاً</strong>).<br>يُفتح النموذج الساعة 12:00 منتصف الليل.';
     closedDiv.innerHTML =
       '<div class="succ-ico" style="background:linear-gradient(135deg,#64748b,#475569)">⏰</div>'+
       '<h3>النموذج مغلق حالياً</h3>'+
@@ -1159,7 +1282,7 @@ function updateFormGate(){
 // تعطيل/تفعيل خياري الاستئذان صباحي/مسائي + ملاحظة الحصة المتبقية اليوم
 function updatePermUI(st){
   st=st||computeGateState();
-  var dailyMax = selRole==='إدارية' ? DAILY_MAX_ADMIN : DAILY_MAX_TEACHER;
+  var dailyMax = dailyMaxFor(selRole);
   var used = countDailyLeaves(selRole);
   var remaining = Math.max(0, dailyMax-used);
   var disablePerm = !st.permOpen || remaining<=0;
@@ -1175,9 +1298,13 @@ function updatePermUI(st){
       note.style.color='#f87171';
       note.textContent='🔒 تم إغلاق تسجيل الاستئذان مؤقتاً من قبل الإدارة اليوم.';
       note.style.display='block';
+    }else if(st.tempUntil && st.permOpen && remaining>0){
+      note.style.color='#4ade80';
+      note.textContent='🔓 التسجيل مفتوح مؤقتاً من الإدارة حتى '+hhmm(st.tempUntil)+' — متبقٍ اليوم '+remaining+' من '+dailyMax+'.';
+      note.style.display='block';
     }else if(!st.permOpen && st.formOpen){
       note.style.color='#f87171';
-      note.textContent='⏰ انتهى وقت الاستئذان والغياب اليومي (يُغلق الساعة 7:00 صباحاً).';
+      note.textContent='⏰ انتهى وقت الاستئذان والغياب اليومي (يُغلق الساعة 7:30 صباحاً).';
       note.style.display='block';
     }else if(remaining<=0 && st.permOpen){
       note.style.color='#f87171';
@@ -1242,7 +1369,14 @@ function countRegularLeaves(name){
 }
 
 // ── إرسال النموذج ─────────────────────────────────────────────────────────
+var SENDING=false;
 async function sendForm(){
+  if(SENDING)return; // منع الإرسال المزدوج (ضغطتين متتاليتين)
+  SENDING=true;
+  var b=document.querySelector('.btn-send');
+  try{await sendFormInner()}finally{SENDING=false;if(b)b.disabled=false}
+}
+async function sendFormInner(){
   var name=document.getElementById('f-name').value.trim();
   var note=document.getElementById('f-note').value.trim();
   var ok=true;
@@ -1251,6 +1385,7 @@ async function sendForm(){
   document.getElementById('e-day').style.display='none';
   if(!name){document.getElementById('fw-name').classList.add('has-err');ok=false}
   if(!selType){document.getElementById('e-type').style.display='block';document.getElementById('fw-type').classList.add('has-err');ok=false}
+  if(selDay && selDay!==todayDayName()){selDay='';autoSelectToday()}
   if(!selDay){document.getElementById('e-day').style.display='block';document.getElementById('fw-day').classList.add('has-err');ok=false}
   if(!ok)return;
 
@@ -1267,8 +1402,8 @@ async function sendForm(){
     if(sendBtn){sendBtn.disabled=false;sendBtn.textContent=origBtnText}
     showGateRejection('⏰','التسجيل مغلق حالياً',
       gate.hour<WINDOW_OPEN_HOUR
-        ? 'لم يبدأ وقت التسجيل بعد.<br>يُفتح النموذج يومياً الساعة <strong style="color:#fbbf24">5:00 صباحاً</strong>.'
-        : 'انتهى وقت التسجيل لهذا اليوم (يُغلق الساعة <strong style="color:#fbbf24">7:00 صباحاً</strong>).<br>يُفتح النموذج غداً الساعة 5:00 صباحاً.');
+        ? 'لم يبدأ وقت التسجيل بعد.<br>يُفتح النموذج يومياً الساعة <strong style="color:#fbbf24">12:00 منتصف الليل</strong>.'
+        : 'انتهى وقت التسجيل لهذا اليوم (يُغلق الساعة <strong style="color:#fbbf24">7:30 صباحاً</strong>).<br>يُفتح النموذج الساعة 12:00 منتصف الليل.');
     return;
   }
   if(isPermTypeNow){
@@ -1281,10 +1416,10 @@ async function sendForm(){
     if(!gate.permOpen){
       if(sendBtn){sendBtn.disabled=false;sendBtn.textContent=origBtnText}
       showGateRejection('⏰','انتهى وقت الاستئذان اليومي',
-        'ينتهي استقبال طلبات الاستئذان والغياب الساعة <strong style="color:#fbbf24">7:00 صباحاً</strong> يومياً.');
+        'ينتهي استقبال طلبات الاستئذان والغياب الساعة <strong style="color:#fbbf24">7:30 صباحاً</strong> يومياً.');
       return;
     }
-    var dailyMaxNow = selRole==='إدارية' ? DAILY_MAX_ADMIN : DAILY_MAX_TEACHER;
+    var dailyMaxNow = dailyMaxFor(selRole);
     var dailyUsedNow = countDailyLeaves(selRole);
     if(dailyUsedNow >= dailyMaxNow){
       if(sendBtn){sendBtn.disabled=false;sendBtn.textContent=origBtnText}
@@ -1305,6 +1440,17 @@ async function sendForm(){
   if(sendBtn){sendBtn.textContent='جارِ الإرسال...'}
   await loadRecs();
   if(sendBtn){sendBtn.disabled=false;sendBtn.textContent=origBtnText}
+
+  // ── منع التكرار: نفس الاسم + نفس النوع + نفس اليوم مسجّل مسبقاً ──
+  var todayK=dayKeyOf(Date.now());
+  var dup=getRecs().some(function(r){
+    return r.name!==MANUAL_LOCK_NAME && r.ts && dayKeyOf(r.ts)===todayK && r.type===selType && namesMatch(r.name,name);
+  });
+  if(dup){
+    showGateRejection('ℹ️','الطلب مسجّل مسبقاً',
+      'عزيزتي <strong style="color:#fff">'+name+'</strong>، تم تسجيل <strong style="color:#fbbf24">'+selType+'</strong> لكِ اليوم من قبل.<br>لا حاجة لإعادة الإرسال.');
+    return;
+  }
 
   // ── تحقق من الرصيد: مرافقة الأبناء له رصيده، والاستئذان العادي له رصيده ──
   var isPermission = (selType==='استئذان صباحي' || selType==='استئذان مسائي');
@@ -1360,6 +1506,7 @@ async function sendForm(){
       '<button class="btn-new" onclick="resetForm()">إعادة المحاولة</button>';
     return;
   }
+  newRec._key=String(newRec.ts)+"|"+newRec.name;
   RECS.unshift(newRec);
 
   // عرض النجاح
@@ -1451,7 +1598,7 @@ function render(){
   var tb=document.getElementById('tbody');
   document.getElementById('tcnt').textContent=data.length+' سجل • '+viewLabel();
   if(!data.length){
-    tb.innerHTML='<tr><td colspan="7"><div class="empty"><div class="ei">📭</div><p>لا توجد سجلات في '+viewLabel()+'</p></div></td></tr>';
+    tb.innerHTML='<tr><td colspan="8"><div class="empty"><div class="ei">📭</div><p>لا توجد سجلات في '+viewLabel()+'</p></div></td></tr>';
     return;
   }
   tb.innerHTML=data.map(function(r){
@@ -1463,6 +1610,10 @@ function render(){
       '<td class="tc-time">'+(r.ts?shortDate(r.ts):'—')+'</td>'+
       '<td class="tc-note">'+(r.note||'—')+'</td>'+
       '<td class="tc-time">'+r.time+'</td>'+
+      '<td class="tc-act" style="white-space:nowrap">'+
+        '<button class="btn-sm btn-chpw" style="padding:6px 10px" onclick="adminEdit(\''+r._key+'\')">✏️</button> '+
+        '<button class="btn-sm btn-clr" style="padding:6px 10px" onclick="adminDelete(\''+r._key+'\')">🗑️</button>'+
+      '</td>'+
       '</tr>';
   }).join('');
 }
@@ -1530,9 +1681,16 @@ function exportExcel(){
 function printReport(){window.print()}
 
 // ── اختيار اليوم الحالي تلقائياً عند فتح الصفحة ─────────────────────────
+function todayDayName(){var i=new Date().getDay();return i<=4?WEEK_DAYS[i]:''}
 function autoSelectToday(){
   var days=['الأحد','الاثنين','الثلاثاء','الأربعاء','الخميس'];
   var todayIdx=new Date().getDay(); // 0=Sun,1=Mon,...,4=Thu
+  // تجميد كل الأيام ما عدا اليوم الحالي
+  document.querySelectorAll('.dbt').forEach(function(b,i){
+    b.disabled=(i!==todayIdx);
+    if(b.disabled)b.classList.remove('on');
+  });
+  if(selDay && selDay!==todayDayName())selDay='';
   // أيام العمل فقط 0-4
   if(todayIdx>=0&&todayIdx<=4){
     var btns=document.querySelectorAll('.dbt');
