@@ -113,6 +113,7 @@ textarea.finput{resize:vertical;min-height:90px}
 .topt.ap-green{background:rgba(186,255,201,.15);border-color:#BAFFC9;color:#BAFFC9}
 .topt.ap-yellow{background:rgba(255,214,10,.18);border-color:var(--yellow-v);color:var(--yellow-v)}
 .topt.ap-blue{background:rgba(186,225,255,.15);border-color:#BAE1FF;color:#BAE1FF}
+.topt.ap-purple{background:rgba(216,191,255,.15);border-color:#D8BFFF;color:#D8BFFF}
 #fw-role .type-grid{grid-template-columns:1fr 1fr}
 .topt.disabled{opacity:.32;filter:grayscale(70%);cursor:not-allowed;pointer-events:none}
 
@@ -401,6 +402,9 @@ tbody td{padding:13px 18px;color:rgba(255,255,255,.85)}
         <div class="topt" id="type-evening" onclick="pickType(this,'استئذان مسائي','blue')">
           <span class="ck">✓</span><span class="emo">🌆</span>استئذان مسائي
         </div>
+        <div class="topt" id="type-companion" onclick="pickType(this,'إجازة مرافق','purple')">
+          <span class="ck">✓</span><span class="emo">🧑‍🤝‍🧑</span>إجازة مرافق
+        </div>
       </div>
       <div class="err-msg" id="e-type">يرجى اختيار نوع الاستئذان</div>
       <div id="perm-note" style="font-size:12px;margin-top:10px;line-height:1.8;display:none"></div>
@@ -485,6 +489,7 @@ tbody td{padding:13px 18px;color:rgba(255,255,255,.85)}
         <option>غائبة اضطراري</option>
         <option>استئذان صباحي</option>
         <option>استئذان مسائي</option>
+        <option>إجازة مرافق</option>
       </select>
       <input class="finput" id="fn" placeholder="🔍 بحث بالاسم..." oninput="render()">
     </div>
@@ -563,7 +568,7 @@ tbody td{padding:13px 18px;color:rgba(255,255,255,.85)}
     <h3 style="margin-bottom:14px">✏️ تعديل السجل</h3>
     <label style="font-size:13px">الاسم</label><input class="finput" id="ed-name" style="margin-bottom:10px">
     <label style="font-size:13px">الفئة</label><select class="finput" id="ed-role" style="margin-bottom:10px"><option>معلمة</option><option>إدارية</option></select>
-    <label style="font-size:13px">الحالة</label><select class="finput" id="ed-type" style="margin-bottom:10px"><option>غائبة مرضي</option><option>غائبة اضطراري</option><option>استئذان صباحي</option><option>استئذان مسائي</option></select>
+    <label style="font-size:13px">الحالة</label><select class="finput" id="ed-type" style="margin-bottom:10px"><option>غائبة مرضي</option><option>غائبة اضطراري</option><option>استئذان صباحي</option><option>استئذان مسائي</option><option>إجازة مرافق</option></select>
     <label style="font-size:13px">اليوم</label><select class="finput" id="ed-day" style="margin-bottom:10px"><option>الأحد</option><option>الاثنين</option><option>الثلاثاء</option><option>الأربعاء</option><option>الخميس</option></select>
     <label style="font-size:13px">ملاحظات</label><textarea class="finput" id="ed-note" style="margin-bottom:14px"></textarea>
     <div style="display:flex;gap:10px"><button class="btn-sm btn-exp" id="ed-save" onclick="saveEdit()" style="flex:1">حفظ</button><button class="btn-sm btn-clr" onclick="closeEdit()" style="flex:1">إلغاء</button></div>
@@ -872,7 +877,7 @@ async function submitPw(){
 function pickRole(el,val){
   selRole=val;
   document.querySelectorAll('#fw-role .topt').forEach(function(o){
-    o.classList.remove('ap','ap-pink','ap-green','ap-yellow','ap-blue');
+    o.classList.remove('ap','ap-pink','ap-green','ap-yellow','ap-blue','ap-purple');
   });
   el.classList.add('ap','ap-blue');
   updatePermUI(); // الحصة اليومية تختلف باختلاف الفئة (معلمة/إدارية)
@@ -1128,7 +1133,7 @@ function pickType(el,val,cls){
   if(el.classList.contains('disabled'))return; // معطّل حالياً (وقت/حصة/قفل يدوي)
   selType=val;
   document.querySelectorAll('#fw-type .topt').forEach(function(o){
-    o.classList.remove('ap','ap-pink','ap-green','ap-yellow','ap-blue');
+    o.classList.remove('ap','ap-pink','ap-green','ap-yellow','ap-blue','ap-purple');
   });
   el.classList.add('ap','ap-'+cls);
   document.getElementById('fw-type').classList.remove('has-err');
@@ -1324,7 +1329,7 @@ function updatePermUI(st){
   if(disablePerm && (selType==='استئذان صباحي'||selType==='استئذان مسائي')){
     selType='';
     document.querySelectorAll('#fw-type .topt').forEach(function(o){
-      o.classList.remove('ap','ap-pink','ap-green','ap-yellow','ap-blue');
+      o.classList.remove('ap','ap-pink','ap-green','ap-yellow','ap-blue','ap-purple');
     });
   }
 }
@@ -1540,13 +1545,13 @@ function resetForm(){
   document.getElementById('f-name').value='';
   document.getElementById('f-note').value='';
   document.querySelectorAll('#fw-type .topt').forEach(function(o){
-    o.classList.remove('ap','ap-pink','ap-green','ap-yellow','ap-blue');
+    o.classList.remove('ap','ap-pink','ap-green','ap-yellow','ap-blue','ap-purple');
   });
   document.querySelectorAll('.dbt').forEach(function(b){b.classList.remove('on')});
   selType='';selDay='';
   // إعادة الفئة إلى الافتراضي: معلمة
   document.querySelectorAll('#fw-role .topt').forEach(function(o){
-    o.classList.remove('ap','ap-pink','ap-green','ap-yellow','ap-blue');
+    o.classList.remove('ap','ap-pink','ap-green','ap-yellow','ap-blue','ap-purple');
   });
   document.getElementById('role-teacher').classList.add('ap','ap-blue');
   selRole='معلمة';
