@@ -361,7 +361,7 @@ tbody td{padding:13px 18px;color:rgba(255,255,255,.85)}
         📢 تنويه مهم بخصوص تسجيل الغياب والاستئذان
       </div>
       <div style="font-size:13px;color:rgba(255,255,255,.75);line-height:2.1">
-        🤒🌅 <strong style="color:#fff">تسجيل الغياب والاستئذان</strong> (مرضي / اضطراري / صباحي / مسائي): يبدأ الساعة <strong style="color:#4ade80">12:00 منتصف الليل</strong> وينتهي الساعة <strong style="color:#4ade80">7:30 صباحًا</strong> لكلٍّ منهما معًا.<br>
+        🤒🌅 <strong style="color:#fff">تسجيل الغياب والاستئذان</strong> (مرضي / اضطراري / صباحي / مسائي): يبدأ الساعة <strong style="color:#4ade80">12:00 منتصف الليل</strong> وينتهي الساعة <strong style="color:#4ade80">7:30 صباحًا</strong>.<br>🌅🌆 <strong style="color:#fff">الاستئذان الصباحي والمسائي</strong>: يبدأ الساعة <strong style="color:#4ade80">12:00 منتصف الليل</strong> وينتهي الساعة <strong style="color:#4ade80">9:30 صباحًا</strong>.<br>
         ⚠️ <strong style="color:#fff">الحد الأقصى اليومي للاستئذان:</strong> 6 معلمات فقط في اليوم، و3 إداريات فقط في اليوم.<br>
         ⏰ عند الدخول خارج هذه الأوقات ستظهر رسالة <strong style="color:#fbbf24">"النموذج مغلق حالياً"</strong> تلقائيًا، ولن يكون التسجيل متاحًا حتى الساعة 12:00 منتصف الليل.<br>
         📅 <strong style="color:#fff">اليوم:</strong> يمكن اختيار يوم اليوم فقط، وباقي الأيام مقفلة.
@@ -383,7 +383,7 @@ tbody td{padding:13px 18px;color:rgba(255,255,255,.85)}
     <div class="field" id="fw-name">
       <label>الاسم <span class="req">*</span></label>
       <input class="finput" id="f-name" type="text" placeholder="الاسم الكامل">
-      <div class="err-msg">يرجى كتابة الاسم</div>
+      <div class="err-msg">يرجى كتابة الاسم الأول والثاني</div>
     </div>
 
     <div class="field" id="fw-type">
@@ -583,7 +583,7 @@ var PERM_MAX=3;  // استئذانات الشهر العادية (لجميع ا�
 // ══ أوقات وحدود يومية جديدة (إضافية فوق حصة الشهر أعلاه، الشرطان معاً) ══
 var WINDOW_OPEN_HOUR=0;   // 12:00 منتصف الليل    // بداية فتح النموذج بالكامل (غياب + استئذان) — موحّد
 var WINDOW_CLOSE_HOUR=7.5; // 7:30 صباحاً  // إغلاق النموذج بالكامل (7:00 صباحاً) — يشمل الغياب والاستئذان معاً
-var PERM_CLOSE_HOUR=7.5;     // إغلاق الاستئذان (نفس وقت إغلاق النموذج بالكامل الآن)
+var PERM_CLOSE_HOUR=9.5;     // إغلاق الاستئذان الصباحي/المسائي: 9:30 صباحاً (الغياب يبقى حتى 7:30)
 var DAILY_MAX_TEACHER=6;   // الحد اليومي المشترك لاستئذانات المعلمات (صباحي+مسائي معاً)
 var DAILY_MAX_TEMP_TEACHER=20; // الحد اليومي للمعلمات أثناء الفتح المؤقت
 var DAILY_MAX_ADMIN=3;     // الحد اليومي المشترك لاستئذانات الإداريات
@@ -626,7 +626,7 @@ function isBaselineActive(){
 }
 function baselineOf(name){
   if(!isBaselineActive())return {child:0,reg:0};
-  return BASELINE_USED[firstNameNorm(name)]||{child:0,reg:0};
+  return BASELINE_USED[nameKey(name)]||{child:0,reg:0};
 }
 
 // ── توحيد الأسماء العربية لتقبل اختلافات الإملاء البسيطة (أ/إ/آ/ا، ة/ه، ى/ي، إلخ) ──
@@ -691,7 +691,7 @@ function dedupeRecs(list){
   var seen={},out=[];
   list.slice().sort(function(a,b){return (a.ts||0)-(b.ts||0)}).forEach(function(r){
     if(r.name===MANUAL_LOCK_NAME||!r.ts){out.push(r);return}
-    var k=firstNameNorm(r.name)+'|'+r.type+'|'+dayKeyOf(r.ts);
+    var k=nameKey(r.name)+'|'+r.type+'|'+dayKeyOf(r.ts);
     if(seen[k])return;
     seen[k]=true;out.push(r);
   });
@@ -1145,16 +1145,17 @@ function pickDay(el,val){
   document.getElementById('e-day').style.display='none';
 }
 
-// ── مطابقة الأسماء بالاسم الأول فقط (لا يوجد تكرار بين المعلمات بالاسم الأول) ──
+// ── مطابقة الأسماء بالاسم الأول + الاسم الثاني ──
 // تُقبل فروقات الإملاء البسيطة (نورة/نوره، أميرة/اميرة/اميره...) عبر normalizeArabic.
-// حتى لو كتبت المعلمة اسمها الأول فقط دون لقب، تُحتسب صحيحة لنفس الشخصة.
-function firstNameNorm(s){
+// المفتاح = أول كلمتين من الاسم، فـ"فاطمة أحمد" و"فاطمة علي" معلمتان مختلفتان.
+// النموذج يطلب الاسم الأول والثاني، فالسجلات الجديدة تُحسب دائماً على المعلمة الصحيحة.
+function nameKey(s){
   var tokens=(s||'').split(/\s+/).map(normalizeArabic).filter(Boolean);
-  return tokens.length?tokens[0]:'';
+  return tokens.slice(0,2).join(' ');
 }
 function namesMatch(a,b){
-  var fa=firstNameNorm(a), fb=firstNameNorm(b);
-  return !!fa && fa===fb;
+  var ka=nameKey(a), kb=nameKey(b);
+  return !!ka && ka===kb;
 }
 
 // ── هل السجل ضمن الشهر الميلادي الحالي؟ (استئذانات أغسطس لا تُحتسب في سبتمبر) ──
@@ -1221,7 +1222,8 @@ function computeGateState(){
     hour:h,
     locked:locked,
     tempUntil:tempUntil,
-    formOpen: (h>=WINDOW_OPEN_HOUR && h<WINDOW_CLOSE_HOUR) || tempUntil>0,              // الغياب + الاستئذان معاً
+    formOpen: (h>=WINDOW_OPEN_HOUR && h<PERM_CLOSE_HOUR) || tempUntil>0,                 // النموذج ظاهر حتى إغلاق الاستئذان
+    absOpen: (h>=WINDOW_OPEN_HOUR && h<WINDOW_CLOSE_HOUR) || tempUntil>0,                // الغياب (مرضي/اضطراري) حتى 7:30
     permOpen: ((h>=WINDOW_OPEN_HOUR && h<PERM_CLOSE_HOUR) || tempUntil>0) && !locked   // الاستئذان فقط
   };
 }
@@ -1267,7 +1269,7 @@ function updateFormGate(){
     closedDiv.style.display='block';
     var msg = st.hour<WINDOW_OPEN_HOUR
       ? 'سيتم فتح نموذج التسجيل يومياً الساعة <strong style="color:#fbbf24">12:00 منتصف الليل</strong>.'
-      : 'انتهى وقت التسجيل لهذا اليوم (يُغلق الساعة <strong style="color:#fbbf24">7:30 صباحاً</strong>).<br>يُفتح النموذج الساعة 12:00 منتصف الليل.';
+      : 'انتهى وقت التسجيل لهذا اليوم (يُغلق الساعة <strong style="color:#fbbf24">9:30 صباحاً</strong>).<br>يُفتح النموذج الساعة 12:00 منتصف الليل.';
     closedDiv.innerHTML =
       '<div class="succ-ico" style="background:linear-gradient(135deg,#64748b,#475569)">⏰</div>'+
       '<h3>النموذج مغلق حالياً</h3>'+
@@ -1304,7 +1306,7 @@ function updatePermUI(st){
       note.style.display='block';
     }else if(!st.permOpen && st.formOpen){
       note.style.color='#f87171';
-      note.textContent='⏰ انتهى وقت الاستئذان والغياب اليومي (يُغلق الساعة 7:30 صباحاً).';
+      note.textContent='⏰ انتهى وقت الاستئذان والغياب اليومي (يُغلق الساعة 9:30 صباحاً).';
       note.style.display='block';
     }else if(remaining<=0 && st.permOpen){
       note.style.color='#f87171';
@@ -1383,7 +1385,7 @@ async function sendFormInner(){
   document.getElementById('fw-name').classList.remove('has-err');
   document.getElementById('e-type').style.display='none';
   document.getElementById('e-day').style.display='none';
-  if(!name){document.getElementById('fw-name').classList.add('has-err');ok=false}
+  if(name.split(/\s+/).filter(Boolean).length<2){document.getElementById('fw-name').classList.add('has-err');ok=false}
   if(!selType){document.getElementById('e-type').style.display='block';document.getElementById('fw-type').classList.add('has-err');ok=false}
   if(selDay && selDay!==todayDayName()){selDay='';autoSelectToday()}
   if(!selDay){document.getElementById('e-day').style.display='block';document.getElementById('fw-day').classList.add('has-err');ok=false}
@@ -1403,7 +1405,13 @@ async function sendFormInner(){
     showGateRejection('⏰','التسجيل مغلق حالياً',
       gate.hour<WINDOW_OPEN_HOUR
         ? 'لم يبدأ وقت التسجيل بعد.<br>يُفتح النموذج يومياً الساعة <strong style="color:#fbbf24">12:00 منتصف الليل</strong>.'
-        : 'انتهى وقت التسجيل لهذا اليوم (يُغلق الساعة <strong style="color:#fbbf24">7:30 صباحاً</strong>).<br>يُفتح النموذج الساعة 12:00 منتصف الليل.');
+        : 'انتهى وقت التسجيل لهذا اليوم (يُغلق الساعة <strong style="color:#fbbf24">9:30 صباحاً</strong>).<br>يُفتح النموذج الساعة 12:00 منتصف الليل.');
+    return;
+  }
+  if(!isPermTypeNow && !gate.absOpen){
+    if(sendBtn){sendBtn.disabled=false;sendBtn.textContent=origBtnText}
+    showGateRejection('⏰','انتهى وقت تسجيل الغياب',
+      'ينتهي تسجيل الغياب المرضي والاضطراري الساعة <strong style="color:#fbbf24">7:30 صباحاً</strong> يومياً.<br>يمكنكِ تسجيل الاستئذان الصباحي أو المسائي حتى <strong style="color:#fbbf24">9:30 صباحاً</strong>.');
     return;
   }
   if(isPermTypeNow){
@@ -1416,7 +1424,7 @@ async function sendFormInner(){
     if(!gate.permOpen){
       if(sendBtn){sendBtn.disabled=false;sendBtn.textContent=origBtnText}
       showGateRejection('⏰','انتهى وقت الاستئذان اليومي',
-        'ينتهي استقبال طلبات الاستئذان والغياب الساعة <strong style="color:#fbbf24">7:30 صباحاً</strong> يومياً.');
+        'ينتهي استقبال طلبات الاستئذان الصباحي والمسائي الساعة <strong style="color:#fbbf24">9:30 صباحاً</strong> يومياً.');
       return;
     }
     var dailyMaxNow = dailyMaxFor(selRole);
